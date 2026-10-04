@@ -121,27 +121,27 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Trazabilidad: `Feature: gym-management-app, Property 24`
     - **Validates: Requirements 8.5**
 
-  - [ ]* 4.10 Prueba de propiedad: no se permiten reservas/entradas duplicadas
+  - [x] 4.10 Prueba de propiedad: no se permiten reservas/entradas duplicadas
     - **Property 25: No se permiten reservas ni entradas de espera duplicadas**
     - Trazabilidad: `Feature: gym-management-app, Property 25`
     - **Validates: Requirements 8.6**
 
-  - [ ]* 4.11 Prueba de propiedad: reembolso al cancelar si y solo si antelación ≥ 2h
+  - [x] 4.11 Prueba de propiedad: reembolso al cancelar si y solo si antelación ≥ 2h
     - **Property 26: El reembolso al cancelar ocurre si y solo si la antelación es ≥ 2 horas**
     - Trazabilidad: `Feature: gym-management-app, Property 26`
     - **Validates: Requirements 8.7, 8.8**
 
-  - [ ]* 4.12 Prueba de propiedad: promoción del primero de la espera con saldo > 0 y descuento 1
+  - [x] 4.12 Prueba de propiedad: promoción del primero de la espera con saldo > 0 y descuento 1
     - **Property 27: Al liberarse una plaza se promociona al primero de la espera con saldo > 0 y se descuenta 1**
     - Trazabilidad: `Feature: gym-management-app, Property 27`
     - **Validates: Requirements 8.9**
 
-  - [ ]* 4.13 Prueba de propiedad: cancelar estando en espera no afecta al saldo
+  - [x] 4.13 Prueba de propiedad: cancelar estando en espera no afecta al saldo
     - **Property 28: Cancelar estando en lista de espera no afecta al saldo**
     - Trazabilidad: `Feature: gym-management-app, Property 28`
     - **Validates: Requirements 8.11**
 
-  - [ ]* 4.14 Prueba de propiedad: rechazo por saldo cero y por lista de espera llena
+  - [x] 4.14 Prueba de propiedad: rechazo por saldo cero y por lista de espera llena
     - **Property 30: Rechazo de reserva por saldo cero y por lista de espera llena (casos borde)**
     - Trazabilidad: `Feature: gym-management-app, Property 30`
     - **Validates: Requirements 4.3, 8.4, 8.12**
