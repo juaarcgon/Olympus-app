@@ -47,8 +47,8 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 7.3_
     - _Design: Flujo de autenticación y sesión; core/router_
 
-- [ ] 2. Esquema de base de datos: migraciones base (tablas, constraints, trigger, RLS)
-  - [~] 2.1 Crear la migración de tablas y constraints
+- [x] 2. Esquema de base de datos: migraciones base (tablas, constraints, trigger, RLS)
+  - [x] 2.1 Crear la migración de tablas y constraints
     - Implementar `supabase/migrations/0001_schema.sql`
     - Tabla `profiles`: `id` PK/FK→`auth.users` ON DELETE CASCADE, `nombre`/`apellidos` NOT NULL, `foto_url` NULL, `email` NOT NULL UNIQUE, `saldo_clases` NOT NULL DEFAULT 10 `CHECK (saldo_clases BETWEEN 0 AND 10)`, `estado` DEFAULT 'activo' `CHECK (estado IN ('activo','suspendido'))`, `rol` DEFAULT 'usuario' `CHECK (rol IN ('usuario','superadmin'))`, `metadata jsonb` NOT NULL DEFAULT '{}', `created_at`
     - Tabla `clases`: `id` PK, `horario` NOT NULL, `aforo` NOT NULL `CHECK (aforo BETWEEN 1 AND 10)`, `monitor` NOT NULL, `created_by` FK→`profiles`, `created_at`
@@ -56,14 +56,14 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 1.1, 1.2, 3.5, 4.4, 5.1, 8.1, 8.6, 8.10, 8.12_
     - _Design: Data Models (tablas profiles, clases, reservas)_
 
-  - [~] 2.2 Crear el trigger de alta de perfil y el helper de rol
+  - [x] 2.2 Crear el trigger de alta de perfil y el helper de rol
     - Implementar `supabase/migrations/0002_trigger_helper.sql`
     - Función + trigger `on_auth_user_created`: inserta fila en `public.profiles` con `saldo_clases = 10` y `estado = 'activo'` tomando `nombre`/`apellidos` de la metadata de signup
     - Función auxiliar `es_superadmin()` (`SECURITY DEFINER`) que devuelve si el `rol` del llamante (`auth.uid()`) es `'superadmin'`
     - _Requirements: 1.1, 1.2, 5.3_
     - _Design: Flujo de autenticación y sesión; Security and RLS Strategy_
 
-  - [~] 2.3 Crear el esqueleto de políticas RLS
+  - [x] 2.3 Crear el esqueleto de políticas RLS
     - Implementar `supabase/migrations/0003_rls.sql`
     - Activar RLS en `profiles`, `clases`, `reservas`; sin políticas para `anon` sobre datos de usuario
     - `profiles` SELECT `USING (auth.uid() = id OR es_superadmin())`; UPDATE con `WITH CHECK` que solo permite modificar `nombre`, `apellidos`, `foto_url`, `metadata`
@@ -72,16 +72,16 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 3.3, 3.4, 7.2, 7.3, 8.1, 8.2_
     - _Design: Security and RLS Strategy_
 
-- [~] 3. Checkpoint - Esqueleto compilable
+- [x] 3. Checkpoint - Esqueleto compilable
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Modelo de dominio puro del bono y reservas (espejo de las RPC)
-  - [~] 4.1 Implementar entidades de dominio compartidas
+- [x] 4. Modelo de dominio puro del bono y reservas (espejo de las RPC)
+  - [x] 4.1 Implementar entidades de dominio compartidas
     - En `lib/features/*/domain/entities/`: `AppUser`/`Profile` (incluye `saldoClases`, `estado`, `rol`, `metadata`), `Clase`, `Reserva` (con `status`, `posicion`), `ReservaResult`
     - _Requirements: 3.1, 3.5, 8.1_
     - _Design: Data Models; Servicios de dominio_
 
-  - [~] 4.2 Implementar el modelo de bono puro
+  - [x] 4.2 Implementar el modelo de bono puro
     - En `lib/features/bono/domain/`: funciones puras `consumir(saldo)`, `reembolsar(saldo)`, `ajustar(saldo, valor)`, `restablecer()`, con clamp estricto al rango 0..10
     - _Requirements: 4.2, 4.3, 4.4, 6.5, 6.6, 8.10_
     - _Design: Servicio_Bono; Funciones RPC del backend_
@@ -106,7 +106,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Trazabilidad: `Feature: gym-management-app, Property 17`
     - **Validates: Requirements 6.6**
 
-  - [~] 4.7 Implementar el modelo puro de reservas, lista de espera y promoción
+  - [x] 4.7 Implementar el modelo puro de reservas, lista de espera y promoción
     - En `lib/features/reservas/domain/`: modelo en memoria con operaciones `reservar(estado, usuario)`, `cancelar(estado, usuario, antelacionHoras)` y promoción FIFO; refleja aforo, lista de espera (máx. 20), duplicados, reembolso según antelación ≥ 2h y promoción del primero con saldo > 0
     - _Requirements: 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.11, 8.12_
     - _Design: Funciones RPC del backend; Tabla reservas_
@@ -146,17 +146,17 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Trazabilidad: `Feature: gym-management-app, Property 30`
     - **Validates: Requirements 4.3, 8.4, 8.12**
 
-- [~] 5. Checkpoint - Modelo de dominio verificado
+- [x] 5. Checkpoint - Modelo de dominio verificado
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Feature Auth: registro, login/logout y recuperación de contraseña
-  - [~] 6.1 Definir el contrato e implementar el data source de autenticación
+- [x] 6. Feature Auth: registro, login/logout y recuperación de contraseña
+  - [x] 6.1 Definir el contrato e implementar el data source de autenticación
     - En `lib/features/auth/domain/repositories/auth_repository.dart`: interfaz `AuthRepository` (`signUp`, `signIn`, `signOut`, `requestPasswordReset`, `updatePasswordWithToken`, `authStateChanges`)
     - En `lib/features/auth/data/datasources/auth_remote_datasource.dart`: llamadas a Supabase Auth (`signUp` con metadata nombre/apellidos, `signInWithPassword`, `signOut`, `resetPasswordForEmail`, `updateUser`)
     - _Requirements: 1.1, 1.3, 2.1, 2.4, 2.5, 7.1, 9.2, 9.7_
     - _Design: Servicio_Autenticacion_
 
-  - [~] 6.2 Implementar `AuthRepositoryImpl` con validación y traducción de errores
+  - [x] 6.2 Implementar `AuthRepositoryImpl` con validación y traducción de errores
     - Validar email (Req 1.5) y longitud de contraseña (Req 1.6/9.6) antes de llamar a Auth
     - Traducir `AuthException` a `EmailEnUsoFailure`, `CredencialesInvalidasFailure`, `CuentaSuspendidaFailure`, `TokenInvalidoFailure`
     - `requestPasswordReset` devuelve siempre el mismo mensaje genérico (Req 9.1)
@@ -199,7 +199,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Trazabilidad: `Feature: gym-management-app, Property 29`
     - **Validates: Requirements 9.1**
 
-  - [~] 6.10 Implementar providers y pantallas de autenticación
+  - [x] 6.10 Implementar providers y pantallas de autenticación
     - En `lib/features/auth/presentation/providers/auth_providers.dart`: `AsyncNotifier` que orquesta signUp/signIn/signOut/reset y expone estados carga/éxito/error
     - Pantallas `login_screen.dart`, `register_screen.dart`, `forgot_password_screen.dart`, `reset_password_screen.dart`
     - Cablear el enrutado de sesión del paso 1.5 a estos providers
@@ -210,8 +210,8 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Login correcto establece sesión (2.1), logout finaliza sesión (2.4), asociación de foto en registro (1.7)
     - _Requirements: 1.7, 2.1, 2.4_
 
-- [ ] 7. Feature Profile: consulta y actualización de perfil
-  - [~] 7.1 Implementar `ProfileRepository` y su data source
+- [x] 7. Feature Profile: consulta y actualización de perfil
+  - [x] 7.1 Implementar `ProfileRepository` y su data source
     - Interfaz `getMyProfile()` / `updateMyProfile(...)` y la implementación con Supabase (`select`/`update` sobre `profiles`, subida de foto a Storage)
     - No exponer modificación de `saldo_clases` ni `estado` (reforzado por RLS del paso 2.3)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
@@ -232,13 +232,13 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Trazabilidad: `Feature: gym-management-app, Property 10`
     - **Validates: Requirements 3.5**
 
-  - [~] 7.5 Implementar providers y pantalla de perfil
+  - [x] 7.5 Implementar providers y pantalla de perfil
     - Provider de perfil (`FutureProvider`/`AsyncNotifier`) y `profile_screen.dart` con edición de nombre/apellidos/foto y lectura de saldo
     - _Requirements: 3.1, 3.2_
     - _Design: Capas del cliente Flutter_
 
-- [ ] 8. Feature Bono: consulta de saldo y RPC de bono
-  - [~] 8.1 Implementar `BonoRepository.getSaldo()` y la RPC `restablecer_bono`
+- [x] 8. Feature Bono: consulta de saldo y RPC de bono
+  - [x] 8.1 Implementar `BonoRepository.getSaldo()` y la RPC `restablecer_bono`
     - Repositorio que lee el saldo vía `select`; migración `supabase/migrations/0004_rpc_bono.sql` con `restablecer_bono(user_id)` (`SECURITY DEFINER`, valida superadmin, fija 10) y `ajustar_bono(user_id, valor)` (valida superadmin y `0 ≤ valor ≤ 10`)
     - _Requirements: 4.1, 6.5, 6.6_
     - _Design: Servicio_Bono; Funciones RPC del backend_
@@ -251,12 +251,12 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 10. Feature Admin: gestión de usuarios y superadministradores
-  - [~] 10.1 Implementar las RPC administrativas
+  - [x] 10.1 Implementar las RPC administrativas
     - Migración `supabase/migrations/0005_rpc_admin.sql`: `suspender_usuario`, `reactivar_usuario`, `eliminar_usuario` (rechaza autoeliminación de superadmin), `conceder_superadmin` (bloqueo `FOR UPDATE` + conteo < 2); todas validan `es_superadmin()`
     - _Requirements: 5.1, 5.2, 5.4, 6.2, 6.3, 6.4, 6.7_
     - _Design: Funciones RPC del backend; invariante de máximo 2 superadmins_
 
-  - [~] 10.2 Implementar `AdminRepository` y su data source
+  - [x] 10.2 Implementar `AdminRepository` y su data source
     - `listUsers`, `suspendUser`, `reactivateUser`, `deleteUser`, `restablecerBono`, `ajustarBono`, `grantSuperadmin` sobre las RPC; traducción de errores a `MaxSuperadminsFailure`, `AutoeliminacionFailure`, `AutorizacionInsuficienteFailure`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 5.2, 5.4, 6.7_
     - _Design: Servicio_Administracion; Error Handling_
@@ -296,12 +296,12 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 5.3, 6.1_
 
 - [ ] 11. Feature Reservas: calendario, aforo y lista de espera
-  - [~] 11.1 Implementar las RPC transaccionales de reservas
+  - [x] 11.1 Implementar las RPC transaccionales de reservas
     - Migración `supabase/migrations/0006_rpc_reservas.sql`: `reservar_clase(clase_id)` (valida saldo > 0, aforo, duplicados, lista de espera < 20, decremento atómico) y `cancelar_reserva(clase_id)` (libera plaza, reembolso si ≥ 2h, promoción FIFO del primero con saldo > 0 dentro de la transacción, o elimina entrada de espera sin tocar saldo)
     - _Requirements: 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.11, 8.12_
     - _Design: Funciones RPC del backend_
 
-  - [~] 11.2 Implementar `ReservasRepository`, data source y CRUD de clases
+  - [x] 11.2 Implementar `ReservasRepository`, data source y CRUD de clases
     - `getCalendario`, `crearClase`, `editarClase`, `eliminarClase` (solo superadmin, vía RLS/validación), `reservar` y `cancelar` (vía RPC); traducción de errores a `SinClasesFailure`, `ListaEsperaLlenaFailure`, `ReservaDuplicadaFailure`, `AutorizacionInsuficienteFailure`
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.11, 8.12_
     - _Design: Servicio_Reservas; Error Handling_

@@ -74,6 +74,13 @@ class SinClasesFailure extends Failure {
   ]);
 }
 
+/// El valor del bono a ajustar está fuera del rango 0..10 (Req 6.6, 4.4).
+class BonoFueraDeRangoFailure extends Failure {
+  const BonoFueraDeRangoFailure([
+    super.mensaje = 'El valor del bono debe estar entre 0 y 10',
+  ]);
+}
+
 /// La lista de espera de la clase ya está completa (Req 8.12).
 class ListaEsperaLlenaFailure extends Failure {
   const ListaEsperaLlenaFailure([
@@ -113,5 +120,15 @@ class AutoeliminacionFailure extends Failure {
 class TokenInvalidoFailure extends Failure {
   const TokenInvalidoFailure([
     super.mensaje = 'El enlace es inválido o ha caducado',
+  ]);
+}
+
+/// Fallo genérico de una operación de backend no cubierto por un `Failure`
+/// más específico (p. ej. dato no encontrado o un error inesperado del
+/// servidor). Conserva el mensaje devuelto por el backend cuando está
+/// disponible para no perder el contexto del error.
+class OperacionFallidaFailure extends Failure {
+  const OperacionFallidaFailure([
+    super.mensaje = 'No se ha podido completar la operación',
   ]);
 }
