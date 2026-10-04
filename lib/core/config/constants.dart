@@ -38,3 +38,17 @@ const int kPasswordMinLength = 8;
 /// Cancelar con dos (2) horas o más de antelación respecto al Horario_Clase
 /// reembolsa una (1) clase; con menos antelación no hay reembolso (Req 8.7, 8.8).
 const int kCancelacionHoras = 2;
+
+/// Duración fija de cada franja de Clase, en horas.
+///
+/// Las Clases se generan en franjas consecutivas de una (1) hora. Un rango de
+/// 10:00 a 12:00, por ejemplo, produce dos franjas: 10:00–11:00 y 11:00–12:00.
+const int kDuracionFranjaHoras = 1;
+
+/// Comprueba si [horario] es una hora de inicio de franja válida (en punto).
+///
+/// Las franjas empiezan siempre en punto (minutos, segundos y milisegundos a
+/// cero). No hay restricción de hora del día: se permite cualquier franja.
+bool esHorarioClaseValido(DateTime horario) {
+  return horario.minute == 0 && horario.second == 0 && horario.millisecond == 0;
+}

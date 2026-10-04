@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/widgets/widgets.dart';
 import '../providers/auth_providers.dart';
 
 /// Mensaje genérico mostrado tras solicitar el restablecimiento (Req 9.1).
@@ -59,14 +60,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
     if (!mounted) return;
     setState(() => _solicitado = true);
-    _mostrarMensaje(_mensajeGenerico);
-  }
-
-  /// Muestra un `SnackBar` con un mensaje en español.
-  void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(mensaje)));
+    AppNotifications.exito(context, _mensajeGenerico);
   }
 
   @override

@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../shared/widgets/widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../domain/entities/profile.dart';
 import '../providers/profile_providers.dart';
@@ -75,7 +76,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     } on Object {
       if (!mounted) return;
-      _mostrarMensaje('No se pudo seleccionar la imagen');
+      AppNotifications.error(context, 'No se pudo seleccionar la imagen');
     }
   }
 
@@ -98,18 +99,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     estado.when(
       data: (_) {
         setState(() => _fotoSeleccionada = null);
-        _mostrarMensaje('Perfil actualizado correctamente');
+        AppNotifications.exito(context, 'Perfil actualizado correctamente');
       },
       loading: () {},
-      error: (error, _) => _mostrarMensaje(_mensajeDeError(error)),
+      error: (error, _) =>
+          AppNotifications.error(context, _mensajeDeError(error)),
     );
-  }
-
-  /// Muestra un `SnackBar` con un mensaje en español.
-  void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
   /// Traduce un error a un mensaje legible en español.

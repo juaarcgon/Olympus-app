@@ -22,7 +22,9 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/config/constants.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/utils/gym_timezone.dart';
 import '../../domain/entities/apuntado.dart';
 import '../../domain/entities/clase.dart';
 import '../../domain/entities/ocupacion_clase.dart';
@@ -58,6 +60,10 @@ class ReservasRepositoryImpl implements ReservasRepository {
     required int aforo,
     required String monitor,
   }) async {
+    // El horario debe caer en una franja permitida (17:00–21:00 en punto).
+    if (!esHorarioClaseValido(horario)) {
+      throw const HorarioClaseInvalidoFailure();
+    }
     try {
       final row = await _dataSource.insertClase(
         horario: horario,
@@ -77,6 +83,10 @@ class ReservasRepositoryImpl implements ReservasRepository {
     int? aforo,
     String? monitor,
   }) async {
+    // Si se cambia el horario, debe caer en una franja permitida.
+    if (horario != null && !esHorarioClaseValido(horario)) {
+      throw const HorarioClaseInvalidoFailure();
+    }
     try {
       final cambios = <String, dynamic>{};
       if (horario != null) {
@@ -166,7 +176,10 @@ class ReservasRepositoryImpl implements ReservasRepository {
 
     return Clase(
       id: row['id'] as String,
-      horario: DateTime.parse(row['horario'] as String),
+      // El backend almacena el horario en UTC; se convierte a la hora del
+      // gimnasio (Europe/Madrid) para mostrar siempre la hora española real
+      // (p. ej. 17:00), con el cambio verano/invierno automático.
+      horario: utcAHoraGimnasio(DateTime.parse(row['horario'] as String)),
       aforo: (row['aforo'] as num).toInt(),
       monitor: row['monitor'] as String,
       createdBy: row['created_by'] as String?,

@@ -21,6 +21,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/gym_timezone.dart';
 import '../../data/repositories/entrenamiento_repository_impl.dart';
 import '../../data/repositories/reservas_repository_impl.dart';
 import '../../domain/entities/clase.dart';
@@ -92,11 +93,16 @@ class DiaReservasNotifier extends AsyncNotifier<DiaReservasView> {
     final reservasRepo = ref.read(reservasRepositoryProvider);
     final entrenamientoRepo = ref.read(entrenamientoRepositoryProvider);
 
-    // Rango del día completo [00:00, 23:59:59.999] (Req 8.1).
-    final desde = _fecha;
-    final hasta = _fecha.add(
-      const Duration(hours: 23, minutes: 59, seconds: 59, milliseconds: 999),
-    );
+    // Rango del día completo en hora del gimnasio (Europe/Madrid), convertido a
+    // UTC para la consulta: [00:00 Madrid, día siguiente 00:00 Madrid) (Req 8.1).
+    final desde = horaGimnasioAUtc(_fecha.year, _fecha.month, _fecha.day, 0);
+    final finDia = _fecha.add(const Duration(days: 1));
+    final hasta = horaGimnasioAUtc(
+      finDia.year,
+      finDia.month,
+      finDia.day,
+      0,
+    ).subtract(const Duration(milliseconds: 1));
 
     // Clases del día y plan de entrenamiento, en paralelo.
     final resultados = await Future.wait<Object?>([

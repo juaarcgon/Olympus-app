@@ -15,8 +15,8 @@
 //       * ajustar bono con un campo numérico 0..10 (Req 6.6),
 //       * conceder superadministrador (Req 5.1, 5.2).
 //
-// Los `Failure` de dominio se muestran como `SnackBar` en español (p. ej.
-// MaxSuperadminsFailure o AutoeliminacionFailure); nunca se muestran trazas
+// Los `Failure` de dominio se muestran como notificaciones rojas en español
+// (p. ej. MaxSuperadminsFailure o AutoeliminacionFailure); nunca se muestran trazas
 // técnicas. Los estados de carga y error del listado se reflejan con un
 // indicador de progreso y una vista de error con reintento.
 
@@ -25,6 +25,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../shared/widgets/widgets.dart';
 import '../../../profile/domain/entities/profile.dart';
 import '../providers/admin_providers.dart';
 
@@ -38,12 +39,16 @@ class AdminScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminScreenState extends ConsumerState<AdminScreen> {
-  /// Muestra un `SnackBar` con un mensaje en español.
-  void _mostrarMensaje(String mensaje) {
+  /// Muestra una notificación de ÉXITO (verde).
+  void _mostrarExito(String mensaje) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(mensaje)));
+    AppNotifications.exito(context, mensaje);
+  }
+
+  /// Muestra una notificación de ERROR (rojo).
+  void _mostrarError(String mensaje) {
+    if (!mounted) return;
+    AppNotifications.error(context, mensaje);
   }
 
   /// Traduce un error a un mensaje legible en español (Req 5.2, 6.7, etc.).
@@ -53,18 +58,19 @@ class _AdminScreenState extends ConsumerState<AdminScreen> {
   }
 
   /// Ejecuta una acción administrativa capturando los `Failure` de dominio para
-  /// mostrarlos como `SnackBar`; en caso de éxito muestra [mensajeExito].
+  /// mostrarlos como notificación de error; en caso de éxito muestra
+  /// [mensajeExito] en verde.
   Future<void> _ejecutarAccion(
     Future<void> Function() accion, {
     required String mensajeExito,
   }) async {
     try {
       await accion();
-      _mostrarMensaje(mensajeExito);
+      _mostrarExito(mensajeExito);
     } on Failure catch (failure) {
-      _mostrarMensaje(failure.mensaje);
+      _mostrarError(failure.mensaje);
     } on Object catch (error) {
-      _mostrarMensaje(_mensajeDeError(error));
+      _mostrarError(_mensajeDeError(error));
     }
   }
 

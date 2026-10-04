@@ -22,6 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/admin/presentation/providers/admin_providers.dart';
 import '../../features/admin/presentation/screens/screens.dart';
 import '../../features/auth/presentation/screens/screens.dart';
 import '../../features/profile/domain/entities/profile.dart';
@@ -33,17 +34,20 @@ import '../../features/reservas/presentation/screens/screens.dart';
 ///
 /// Escucha `onAuthStateChange` y reconstruye el árbol para mostrar la rama
 /// pública, la de recuperación o la autenticada según el estado de la sesión.
-class AppRouter extends StatefulWidget {
+class AppRouter extends ConsumerStatefulWidget {
   /// Crea el shell de enrutado.
   const AppRouter({super.key});
 
   @override
-  State<AppRouter> createState() => _AppRouterState();
+  ConsumerState<AppRouter> createState() => _AppRouterState();
 }
 
-class _AppRouterState extends State<AppRouter> {
+class _AppRouterState extends ConsumerState<AppRouter> {
   StreamSubscription<AuthState>? _authSubscription;
   Session? _session;
+
+  /// Id del usuario de la sesión anterior, para detectar cambios de cuenta.
+  String? _usuarioAnterior;
 
   /// Indica que hay un flujo de recuperación de contraseña en curso: el Usuario
   /// abrió el enlace de restablecimiento y debe fijar una nueva contraseña
@@ -58,11 +62,24 @@ class _AppRouterState extends State<AppRouter> {
 
     // Estado inicial: puede haber ya una sesión restaurada al arrancar.
     _session = auth.currentSession;
+    _usuarioAnterior = _session?.user.id;
 
     // La guarda reacciona a cualquier cambio de autenticación (login, logout,
     // refresco de token, restablecimiento de contraseña, etc.).
     _authSubscription = auth.onAuthStateChange.listen((AuthState state) {
       if (!mounted) return;
+
+      // Si cambia el usuario de la sesión (login de otra cuenta, logout o un
+      // nuevo registro con sesión), se invalida el estado de usuario cacheado
+      // para que el perfil y el panel de administración se recarguen desde
+      // cero y no se muestren datos del usuario anterior.
+      final nuevoUsuario = state.session?.user.id;
+      if (nuevoUsuario != _usuarioAnterior) {
+        _usuarioAnterior = nuevoUsuario;
+        ref.invalidate(profileNotifierProvider);
+        ref.invalidate(adminNotifierProvider);
+      }
+
       setState(() {
         _session = state.session;
         // Al abrir el enlace de recuperación Supabase emite `passwordRecovery`

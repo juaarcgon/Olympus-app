@@ -95,6 +95,23 @@ class ReservaDuplicadaFailure extends Failure {
   ]);
 }
 
+/// El horario de inicio de la Clase no es una franja válida (debe ser en punto).
+class HorarioClaseInvalidoFailure extends Failure {
+  const HorarioClaseInvalidoFailure([
+    super.mensaje = 'Las clases deben empezar en punto (franjas de una hora)',
+  ]);
+}
+
+/// El rango horario indicado para generar franjas no es válido.
+///
+/// La hora de fin debe ser estrictamente posterior a la de inicio para que el
+/// rango contenga al menos una franja de una hora.
+class RangoHorarioInvalidoFailure extends Failure {
+  const RangoHorarioInvalidoFailure([
+    super.mensaje = 'La hora de fin debe ser posterior a la de inicio',
+  ]);
+}
+
 /// El usuario no tiene permisos suficientes para la operación (Req 5.4, 7.2, 8.2).
 class AutorizacionInsuficienteFailure extends Failure {
   const AutorizacionInsuficienteFailure([

@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../shared/widgets/widgets.dart';
 import '../providers/auth_providers.dart';
 
 /// Longitud mínima de la nueva contraseña mostrada como pista (Req 9.6).
@@ -59,17 +60,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
     final estado = ref.read(authNotifierProvider);
     estado.when(
-      data: (_) => _mostrarMensaje('Tu contraseña se ha actualizado'),
+      data: (_) =>
+          AppNotifications.exito(context, 'Tu contraseña se ha actualizado'),
       loading: () {},
-      error: (error, _) => _mostrarMensaje(_mensajeDeError(error)),
+      error: (error, _) =>
+          AppNotifications.error(context, _mensajeDeError(error)),
     );
-  }
-
-  /// Muestra un `SnackBar` con un mensaje en español.
-  void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
   /// Traduce un error a un mensaje legible en español.

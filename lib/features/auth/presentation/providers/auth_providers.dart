@@ -26,6 +26,16 @@ import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 
+/// Desenlace de una operación de registro correcta.
+enum SignUpResult {
+  /// El alta dejó una sesión activa: el enrutado navega a la zona autenticada.
+  sesionIniciada,
+
+  /// El alta requiere confirmar el correo: aún no hay sesión. La UI debe
+  /// informar al Usuario de que revise su bandeja de entrada.
+  confirmacionPendiente,
+}
+
 /// Provee la implementación del [AuthRepository] (Servicio_Autenticacion).
 ///
 /// Por defecto construye un [AuthRepositoryImpl] respaldado por Supabase. En
@@ -70,7 +80,12 @@ class AuthNotifier extends AsyncNotifier<AppUser?> {
   /// Durante la operación el estado pasa a `AsyncLoading` y, al terminar, a
   /// `AsyncData` con el perfil creado o `AsyncError` si falla (p. ej. email en
   /// uso o contraseña demasiado corta).
-  Future<void> signUp({
+  ///
+  /// Devuelve el resultado del alta como [SignUpResult]: `sesionIniciada`
+  /// cuando el registro deja sesión activa (el enrutado navega solo) o
+  /// `confirmacionPendiente` cuando Auth requiere confirmar el correo (la UI
+  /// debe avisar y volver al login). Si la operación falla, se relanza el error.
+  Future<SignUpResult> signUp({
     required String nombre,
     required String apellidos,
     required String email,
@@ -88,6 +103,18 @@ class AuthNotifier extends AsyncNotifier<AppUser?> {
         foto: foto,
       ),
     );
+
+    // Si falló, se relanza para que la pantalla muestre el error.
+    if (state.hasError) {
+      // ignore: only_throw_errors
+      throw state.error!;
+    }
+
+    // `AsyncData(null)` tras un alta correcta significa que no hay sesión aún:
+    // el registro quedó pendiente de confirmación por correo.
+    return state.value == null
+        ? SignUpResult.confirmacionPendiente
+        : SignUpResult.sesionIniciada;
   }
 
   /// Inicia sesión con [email] y [password] (Req 2.1).

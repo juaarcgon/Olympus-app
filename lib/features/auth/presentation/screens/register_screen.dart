@@ -19,6 +19,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/error/failures.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../shared/widgets/widgets.dart';
 import '../providers/auth_providers.dart';
 
 /// Longitud mínima de la contraseña mostrada como pista al Usuario (Req 9.6).
@@ -71,7 +72,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       }
     } on Object {
       if (!mounted) return;
-      _mostrarMensaje('No se pudo seleccionar la imagen');
+      AppNotifications.error(context, 'No se pudo seleccionar la imagen');
     }
   }
 
@@ -80,31 +81,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
 
-    await ref
-        .read(authNotifierProvider.notifier)
-        .signUp(
-          nombre: _nombreController.text.trim(),
-          apellidos: _apellidosController.text.trim(),
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          foto: _fotoSeleccionada,
+    try {
+      final resultado = await ref
+          .read(authNotifierProvider.notifier)
+          .signUp(
+            nombre: _nombreController.text.trim(),
+            apellidos: _apellidosController.text.trim(),
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+            foto: _fotoSeleccionada,
+          );
+
+      if (!mounted) return;
+
+      // En ambos desenlaces se cierra la pantalla de registro para que el shell
+      // de enrutado quede visible. Con sesión activa, la guarda muestra la zona
+      // autenticada; si quedó pendiente de confirmación, se vuelve al login y
+      // se avisa al Usuario de que revise su correo.
+      if (resultado == SignUpResult.confirmacionPendiente) {
+        AppNotifications.exito(
+          context,
+          'Cuenta creada. Revisa tu correo para confirmarla antes de '
+          'iniciar sesión.',
         );
-
-    if (!mounted) return;
-
-    // El éxito lo gestiona la guarda de enrutado al reaccionar al cambio de
-    // sesión; aquí solo se muestran los errores (p. ej. email en uso).
-    final estado = ref.read(authNotifierProvider);
-    estado.whenOrNull(
-      error: (error, _) => _mostrarMensaje(_mensajeDeError(error)),
-    );
-  }
-
-  /// Muestra un `SnackBar` con un mensaje en español.
-  void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(mensaje)));
+      }
+      Navigator.of(context).pop();
+    } on Object catch (error) {
+      if (!mounted) return;
+      AppNotifications.error(context, _mensajeDeError(error));
+    }
   }
 
   /// Traduce un error a un mensaje legible en español.

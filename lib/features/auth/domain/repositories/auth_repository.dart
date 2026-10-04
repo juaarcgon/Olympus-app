@@ -35,7 +35,12 @@ abstract class AuthRepository {
   /// opcional se asocia como `foto_url` si se proporciona (Req 1.7). Las
   /// credenciales ([email]/[password]) las gestiona el proveedor de Auth, que
   /// aplica el hashing y controla el email duplicado (Req 1.3, 1.4).
-  Future<AppUser> signUp({
+  ///
+  /// Devuelve el [AppUser] cuando el alta deja una sesión activa (confirmación
+  /// de email desactivada), o `null` cuando el registro queda pendiente de
+  /// confirmación por correo (no hay sesión todavía). En este último caso la
+  /// UI debe informar al Usuario de que revise su correo.
+  Future<AppUser?> signUp({
     required String nombre,
     required String apellidos,
     required String email,

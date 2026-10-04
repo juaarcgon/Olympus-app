@@ -17,19 +17,23 @@
 // 8.2): un botón flotante para "Añadir franja", "Generar franjas 17–20h" y
 // "Editar plan del día", y en cada franja acciones de editar/eliminar. El
 // Usuario normal nunca ve ninguno de estos controles. Todas las operaciones de
-// gestión reflejan estados de carga, muestran `SnackBar` en español derivados
-// de `Failure.mensaje` y refrescan la vista tras completarse con éxito.
+// gestión reflejan estados de carga, muestran notificaciones en español
+// (verde para éxito, rojo para error) derivadas de `Failure.mensaje` y
+// refrescan la vista tras completarse con éxito.
 //
 // Los estados de carga y error se reflejan con un indicador de progreso y
-// mensajes en español derivados de `Failure.mensaje`; nunca se muestran trazas
-// técnicas. Al reservar/cancelar con éxito se muestra un `SnackBar` y se
-// refresca la vista.
+// notificaciones flotantes arriba a la derecha derivadas de `Failure.mensaje`;
+// nunca se muestran trazas técnicas. Al reservar/cancelar con éxito se muestra
+// una notificación verde y se refresca la vista.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../../../../core/config/constants.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/utils/gym_timezone.dart';
+import '../../../../shared/widgets/widgets.dart';
 import '../../../profile/presentation/providers/profile_providers.dart';
 import '../../domain/entities/apuntado.dart';
 import '../../domain/entities/clase.dart';
@@ -68,11 +72,16 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
     return 'Ha ocurrido un error. Inténtalo de nuevo.';
   }
 
-  /// Muestra un `SnackBar` con un mensaje en español.
-  void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(mensaje)));
+  /// Muestra una notificación de ÉXITO (verde).
+  void _mostrarExito(String mensaje) {
+    if (!mounted) return;
+    AppNotifications.exito(context, mensaje);
+  }
+
+  /// Muestra una notificación de ERROR (rojo).
+  void _mostrarError(String mensaje) {
+    if (!mounted) return;
+    AppNotifications.error(context, mensaje);
   }
 
   /// Reserva una plaza en la franja [claseId] y notifica el desenlace.
@@ -83,19 +92,17 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
           .reservar(claseId);
       if (!mounted) return;
       if (resultado.esConfirmada) {
-        _mostrarMensaje('Reserva confirmada');
+        _mostrarExito('Reserva confirmada');
       } else {
-        _mostrarMensaje(
+        _mostrarExito(
           'Aforo completo: estás en lista de espera (posición '
           '${resultado.posicion})',
         );
       }
     } on Failure catch (failure) {
-      if (!mounted) return;
-      _mostrarMensaje(failure.mensaje);
+      _mostrarError(failure.mensaje);
     } on Object {
-      if (!mounted) return;
-      _mostrarMensaje('Ha ocurrido un error. Inténtalo de nuevo.');
+      _mostrarError('Ha ocurrido un error. Inténtalo de nuevo.');
     }
   }
 
@@ -103,57 +110,80 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
   Future<void> _cancelar(String claseId) async {
     try {
       await ref.read(diaReservasProvider.notifier).cancelar(claseId);
-      if (!mounted) return;
-      _mostrarMensaje('Reserva cancelada');
+      _mostrarExito('Reserva cancelada');
     } on Failure catch (failure) {
-      if (!mounted) return;
-      _mostrarMensaje(failure.mensaje);
+      _mostrarError(failure.mensaje);
     } on Object {
-      if (!mounted) return;
-      _mostrarMensaje('Ha ocurrido un error. Inténtalo de nuevo.');
+      _mostrarError('Ha ocurrido un error. Inténtalo de nuevo.');
     }
   }
 
   // --- Gestión del superadministrador (Req 8.1, 8.2) --------------------------
 
-  /// Combina la fecha del día seleccionado con una hora [hora] del día.
+  /// Combina la fecha del día seleccionado con una hora [hora] interpretada
+  /// como hora del gimnasio (Europe/Madrid) y devuelve el instante en UTC.
+  ///
+  /// Así la hora que elige el superadministrador es siempre la hora española
+  /// real; la conversión a UTC (que es lo que almacena el backend) la resuelve
+  /// la zona horaria del gimnasio con el cambio verano/invierno automático.
   DateTime _combinarFechaHora(TimeOfDay hora) {
     final dia = ref.read(diaSeleccionadoProvider);
-    return DateTime(dia.year, dia.month, dia.day, hora.hour, hora.minute);
+    return horaGimnasioAUtc(
+      dia.year,
+      dia.month,
+      dia.day,
+      hora.hour,
+      hora.minute,
+    );
   }
 
-  /// Abre el diálogo para añadir una nueva franja al día y la crea (Req 8.1).
+  /// Abre el diálogo de rango para generar una o varias franjas de una hora y
+  /// las crea (Req 8.1).
+  ///
+  /// Un rango de 10:00 a 12:00 crea dos franjas (10–11 y 11–12), cada una con
+  /// el monitor indicado. Las franjas se crean de forma independiente: si
+  /// alguna falla (p. ej. ya existe), el resto se crean igualmente y se informa
+  /// del resumen.
   Future<void> _anadirFranja() async {
     final datos = await showDialog<_DatosFranja>(
       context: context,
-      builder: (_) => const _FranjaDialog(),
+      builder: (_) => const _RangoFranjasDialog(),
     );
     if (datos == null || !mounted) return;
-    try {
-      await ref
-          .read(diaReservasProvider.notifier)
-          .crearFranja(
-            horario: _combinarFechaHora(datos.hora),
-            aforo: datos.aforo,
-            monitor: datos.monitor,
-          );
-      if (!mounted) return;
-      _mostrarMensaje('Franja creada');
-    } on Failure catch (failure) {
-      if (!mounted) return;
-      _mostrarMensaje(failure.mensaje);
-    } on Object {
-      if (!mounted) return;
-      _mostrarMensaje('Ha ocurrido un error. Inténtalo de nuevo.');
+
+    final notifier = ref.read(diaReservasProvider.notifier);
+    var creadas = 0;
+    var omitidas = 0;
+    for (final franja in datos.franjas) {
+      try {
+        await notifier.crearFranja(
+          horario: _combinarFechaHora(franja.hora),
+          aforo: datos.aforo,
+          monitor: franja.monitor,
+        );
+        creadas++;
+      } on Failure {
+        omitidas++;
+      } on Object {
+        omitidas++;
+      }
+    }
+    if (!mounted) return;
+    if (omitidas == 0) {
+      _mostrarExito(
+        creadas == 1 ? 'Franja creada' : '$creadas franjas creadas',
+      );
+    } else {
+      _mostrarError('Franjas creadas: $creadas · omitidas: $omitidas');
     }
   }
 
   /// Abre el diálogo de edición de una franja ya existente y la actualiza
   /// (Req 8.1). Los campos se prellenan con los valores actuales de la Clase.
   Future<void> _editarFranja(Clase clase) async {
-    final datos = await showDialog<_DatosFranja>(
+    final datos = await showDialog<_DatosEdicionFranja>(
       context: context,
-      builder: (_) => _FranjaDialog(claseInicial: clase),
+      builder: (_) => _EditarFranjaDialog(claseInicial: clase),
     );
     if (datos == null || !mounted) return;
     try {
@@ -165,14 +195,11 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
             aforo: datos.aforo,
             monitor: datos.monitor,
           );
-      if (!mounted) return;
-      _mostrarMensaje('Franja actualizada');
+      _mostrarExito('Franja actualizada');
     } on Failure catch (failure) {
-      if (!mounted) return;
-      _mostrarMensaje(failure.mensaje);
+      _mostrarError(failure.mensaje);
     } on Object {
-      if (!mounted) return;
-      _mostrarMensaje('Ha ocurrido un error. Inténtalo de nuevo.');
+      _mostrarError('Ha ocurrido un error. Inténtalo de nuevo.');
     }
   }
 
@@ -203,58 +230,11 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
     if (confirmado != true || !mounted) return;
     try {
       await ref.read(diaReservasProvider.notifier).eliminarFranja(clase.id);
-      if (!mounted) return;
-      _mostrarMensaje('Franja eliminada');
+      _mostrarExito('Franja eliminada');
     } on Failure catch (failure) {
-      if (!mounted) return;
-      _mostrarMensaje(failure.mensaje);
+      _mostrarError(failure.mensaje);
     } on Object {
-      if (!mounted) return;
-      _mostrarMensaje('Ha ocurrido un error. Inténtalo de nuevo.');
-    }
-  }
-
-  /// Genera las 4 franjas estándar (17, 18, 19 y 20 h) del día con un aforo y
-  /// monitor por defecto que el superadministrador indica una sola vez
-  /// (Req 8.1).
-  ///
-  /// Es una acción de conveniencia claramente opcional: crea cada franja de
-  /// forma independiente capturando los errores por franja, de modo que si
-  /// alguna ya existe ([ReservaDuplicadaFailure]) u otra falla, el resto se
-  /// crean igualmente y se informa del resumen.
-  Future<void> _generarFranjasEstandar() async {
-    final datos = await showDialog<_DatosFranja>(
-      context: context,
-      builder: (_) => const _FranjaDialog(
-        titulo: 'Generar franjas 17–20h',
-        ocultarHora: true,
-      ),
-    );
-    if (datos == null || !mounted) return;
-
-    final notifier = ref.read(diaReservasProvider.notifier);
-    var creadas = 0;
-    var omitidas = 0;
-    for (final horaDelDia in const [17, 18, 19, 20]) {
-      try {
-        await notifier.crearFranja(
-          horario: _combinarFechaHora(TimeOfDay(hour: horaDelDia, minute: 0)),
-          aforo: datos.aforo,
-          monitor: datos.monitor,
-        );
-        creadas++;
-      } on Failure {
-        // P. ej. una franja duplicada; se omite y se continúa con el resto.
-        omitidas++;
-      } on Object {
-        omitidas++;
-      }
-    }
-    if (!mounted) return;
-    if (omitidas == 0) {
-      _mostrarMensaje('Franjas 17–20h generadas');
-    } else {
-      _mostrarMensaje('Franjas creadas: $creadas · omitidas: $omitidas');
+      _mostrarError('Ha ocurrido un error. Inténtalo de nuevo.');
     }
   }
 
@@ -269,14 +249,11 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
     if (actividades == null || !mounted) return;
     try {
       await ref.read(diaReservasProvider.notifier).guardarPlan(actividades);
-      if (!mounted) return;
-      _mostrarMensaje('Plan del día guardado');
+      _mostrarExito('Plan del día guardado');
     } on Failure catch (failure) {
-      if (!mounted) return;
-      _mostrarMensaje(failure.mensaje);
+      _mostrarError(failure.mensaje);
     } on Object {
-      if (!mounted) return;
-      _mostrarMensaje('Ha ocurrido un error. Inténtalo de nuevo.');
+      _mostrarError('Ha ocurrido un error. Inténtalo de nuevo.');
     }
   }
 
@@ -300,7 +277,6 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
       floatingActionButton: esSuperadmin
           ? _MenuGestionAdmin(
               onAnadirFranja: _anadirFranja,
-              onGenerarFranjas: _generarFranjasEstandar,
               onEditarPlan: () => _editarPlan(planActual),
             )
           : null,
@@ -737,18 +713,16 @@ class _FranjaExpandibleAdmin extends ConsumerWidget {
 /// Menú flotante de gestión del superadministrador (Req 8.1, 8.2).
 ///
 /// Agrupa las acciones de gestión en un `PopupMenuButton` sobre un
-/// `FloatingActionButton` para no saturar la pantalla: "Añadir franja",
-/// "Generar franjas 17–20h" y "Editar plan del día". Solo se renderiza cuando
-/// el Usuario actual es superadministrador.
+/// `FloatingActionButton` para no saturar la pantalla: "Añadir franjas" (por
+/// rango) y "Editar plan del día". Solo se renderiza cuando el Usuario actual
+/// es superadministrador.
 class _MenuGestionAdmin extends StatelessWidget {
   const _MenuGestionAdmin({
     required this.onAnadirFranja,
-    required this.onGenerarFranjas,
     required this.onEditarPlan,
   });
 
   final Future<void> Function() onAnadirFranja;
-  final Future<void> Function() onGenerarFranjas;
   final Future<void> Function() onEditarPlan;
 
   @override
@@ -759,8 +733,6 @@ class _MenuGestionAdmin extends StatelessWidget {
         switch (opcion) {
           case 'anadir':
             onAnadirFranja();
-          case 'generar':
-            onGenerarFranjas();
           case 'plan':
             onEditarPlan();
         }
@@ -770,14 +742,7 @@ class _MenuGestionAdmin extends StatelessWidget {
           value: 'anadir',
           child: ListTile(
             leading: Icon(Icons.add),
-            title: Text('Añadir franja'),
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'generar',
-          child: ListTile(
-            leading: Icon(Icons.schedule),
-            title: Text('Generar franjas 17–20h'),
+            title: Text('Añadir franjas'),
           ),
         ),
         PopupMenuItem<String>(
@@ -796,63 +761,270 @@ class _MenuGestionAdmin extends StatelessWidget {
   }
 }
 
-/// Datos recogidos por [_FranjaDialog] para crear/editar una franja (Req 8.1).
+/// Una franja concreta a crear: hora de inicio (en punto) y su monitor.
+class _FranjaGenerada {
+  const _FranjaGenerada({required this.hora, required this.monitor});
+
+  /// Hora de inicio de la franja (minutos a cero).
+  final TimeOfDay hora;
+
+  /// Monitor asignado a esta franja concreta.
+  final String monitor;
+}
+
+/// Datos recogidos por [_RangoFranjasDialog] al crear franjas por rango (Req 8.1).
+///
+/// Un rango de 10:00 a 12:00 produce dos franjas (10–11 y 11–12), cada una con
+/// su propio monitor y compartiendo el mismo [aforo].
 class _DatosFranja {
-  const _DatosFranja({
+  const _DatosFranja({required this.aforo, required this.franjas});
+
+  /// Aforo común a todas las franjas del rango; invariante 1..10.
+  final int aforo;
+
+  /// Franjas de una hora generadas a partir del rango, con su monitor.
+  final List<_FranjaGenerada> franjas;
+}
+
+/// Datos recogidos al editar una franja existente (hora, aforo y monitor).
+class _DatosEdicionFranja {
+  const _DatosEdicionFranja({
     required this.hora,
     required this.aforo,
     required this.monitor,
   });
 
-  /// Hora del día de la franja (la fecha la aporta el día seleccionado).
   final TimeOfDay hora;
-
-  /// Aforo de la franja; invariante 1..10 validada en el formulario.
   final int aforo;
-
-  /// Monitor asignado a la franja.
   final String monitor;
 }
 
-/// Diálogo de creación/edición de una franja horaria (Req 8.1).
+/// Diálogo para generar franjas de una hora a partir de un RANGO (Req 8.1).
 ///
-/// Permite elegir la hora (selector de hora, con cualquier valor permitido),
-/// el aforo (1..10, validado) y el monitor. Si se pasa [claseInicial] los
-/// campos se prellenan con sus valores para la edición. Con [ocultarHora] se
-/// oculta el selector de hora (lo usa la generación de franjas estándar, que
-/// fija las horas 17–20).
-class _FranjaDialog extends StatefulWidget {
-  const _FranjaDialog({
-    this.claseInicial,
-    this.titulo,
-    this.ocultarHora = false,
-  });
-
-  final Clase? claseInicial;
-  final String? titulo;
-  final bool ocultarHora;
+/// El superadministrador elige la hora de inicio y la de fin del rango y el
+/// aforo común; el diálogo calcula las franjas de una hora resultantes (p. ej.
+/// 10:00–12:00 → 10–11 y 11–12) y muestra un campo de monitor por cada franja,
+/// de modo que el monitor pueda variar entre franjas. Al confirmar devuelve un
+/// [_DatosFranja] con el aforo y la lista de franjas con su monitor.
+class _RangoFranjasDialog extends StatefulWidget {
+  const _RangoFranjasDialog();
 
   @override
-  State<_FranjaDialog> createState() => _FranjaDialogState();
+  State<_RangoFranjasDialog> createState() => _RangoFranjasDialogState();
 }
 
-class _FranjaDialogState extends State<_FranjaDialog> {
+class _RangoFranjasDialogState extends State<_RangoFranjasDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _aforoController = TextEditingController();
+
+  /// Hora de inicio y fin del rango (en punto). El rango [inicio, fin) genera
+  /// una franja de una hora por cada hora entera contenida.
+  int _horaInicio = 10;
+  int _horaFin = 12;
+
+  /// Controladores del monitor de cada franja generada, indexados por hora de
+  /// inicio de la franja. Se conservan entre recálculos para no perder lo
+  /// escrito al ajustar el rango.
+  final Map<int, TextEditingController> _monitores =
+      <int, TextEditingController>{};
+
+  @override
+  void dispose() {
+    _aforoController.dispose();
+    for (final c in _monitores.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  /// Horas de inicio de las franjas del rango [_horaInicio, _horaFin).
+  List<int> get _horasFranjas => [
+    for (var h = _horaInicio; h < _horaFin; h += kDuracionFranjaHoras) h,
+  ];
+
+  /// Devuelve (creando si hace falta) el controlador de monitor de la franja
+  /// que empieza a la hora [hora].
+  TextEditingController _controladorMonitor(int hora) {
+    return _monitores.putIfAbsent(hora, TextEditingController.new);
+  }
+
+  /// Etiqueta "HH:00 - (HH+1):00" de una franja de una hora.
+  String _etiquetaFranja(int hora) {
+    final inicio = hora.toString().padLeft(2, '0');
+    final fin = (hora + 1).toString().padLeft(2, '0');
+    return '$inicio:00 - $fin:00';
+  }
+
+  /// Valida el formulario y devuelve el aforo y las franjas con su monitor.
+  void _guardar() {
+    if (!_formKey.currentState!.validate()) return;
+    if (_horaFin <= _horaInicio) return;
+
+    final franjas = [
+      for (final hora in _horasFranjas)
+        _FranjaGenerada(
+          hora: TimeOfDay(hour: hora, minute: 0),
+          monitor: _controladorMonitor(hora).text.trim(),
+        ),
+    ];
+
+    Navigator.of(context).pop(
+      _DatosFranja(
+        aforo: int.parse(_aforoController.text.trim()),
+        franjas: franjas,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rangoValido = _horaFin > _horaInicio;
+
+    return AlertDialog(
+      title: const Text('Generar franjas por rango'),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      initialValue: _horaInicio,
+                      decoration: const InputDecoration(
+                        labelText: 'Desde',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        for (var h = 0; h <= 23; h++)
+                          DropdownMenuItem<int>(
+                            value: h,
+                            child: Text('${h.toString().padLeft(2, '0')}:00'),
+                          ),
+                      ],
+                      onChanged: (valor) {
+                        if (valor != null) {
+                          setState(() => _horaInicio = valor);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<int>(
+                      initialValue: _horaFin,
+                      decoration: const InputDecoration(
+                        labelText: 'Hasta',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        for (var h = 1; h <= 24; h++)
+                          DropdownMenuItem<int>(
+                            value: h,
+                            child: Text('${h.toString().padLeft(2, '0')}:00'),
+                          ),
+                      ],
+                      onChanged: (valor) {
+                        if (valor != null) {
+                          setState(() => _horaFin = valor);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _aforoController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Aforo (1-10) para todas las franjas',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (valor) {
+                  final numero = int.tryParse(valor?.trim() ?? '');
+                  if (numero == null) return 'Introduce un número';
+                  if (numero < 1 || numero > 10) {
+                    return 'El aforo debe estar entre 1 y 10';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              if (!rangoValido)
+                const Text(
+                  'La hora de fin debe ser posterior a la de inicio.',
+                  style: TextStyle(color: Colors.red),
+                )
+              else ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Monitor por franja (${_horasFranjas.length}):',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                for (final hora in _horasFranjas) ...[
+                  TextFormField(
+                    controller: _controladorMonitor(hora),
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(
+                      labelText: 'Monitor ${_etiquetaFranja(hora)}',
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.person_outline),
+                    ),
+                    validator: (valor) => (valor?.trim() ?? '').isEmpty
+                        ? 'Indica el monitor'
+                        : null,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: rangoValido ? _guardar : null,
+          child: const Text('Generar'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Diálogo de edición de una franja existente: hora (en punto), aforo y monitor.
+class _EditarFranjaDialog extends StatefulWidget {
+  const _EditarFranjaDialog({required this.claseInicial});
+
+  final Clase claseInicial;
+
+  @override
+  State<_EditarFranjaDialog> createState() => _EditarFranjaDialogState();
+}
+
+class _EditarFranjaDialogState extends State<_EditarFranjaDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _aforoController;
   late final TextEditingController _monitorController;
-  late TimeOfDay _hora;
+  late int _hora;
 
   @override
   void initState() {
     super.initState();
     final clase = widget.claseInicial;
-    _hora = clase != null
-        ? TimeOfDay(hour: clase.horario.hour, minute: clase.horario.minute)
-        : const TimeOfDay(hour: 17, minute: 0);
-    _aforoController = TextEditingController(
-      text: clase != null ? clase.aforo.toString() : '',
-    );
-    _monitorController = TextEditingController(text: clase?.monitor ?? '');
+    _hora = clase.horario.hour;
+    _aforoController = TextEditingController(text: clase.aforo.toString());
+    _monitorController = TextEditingController(text: clase.monitor);
   }
 
   @override
@@ -862,25 +1034,11 @@ class _FranjaDialogState extends State<_FranjaDialog> {
     super.dispose();
   }
 
-  /// Formatea la hora seleccionada como "HH:mm".
-  String get _horaTexto {
-    final h = _hora.hour.toString().padLeft(2, '0');
-    final m = _hora.minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
-
-  /// Abre el selector de hora nativo y actualiza la hora elegida.
-  Future<void> _elegirHora() async {
-    final elegida = await showTimePicker(context: context, initialTime: _hora);
-    if (elegida != null) setState(() => _hora = elegida);
-  }
-
-  /// Valida el formulario y devuelve los datos de la franja al cerrar.
   void _guardar() {
     if (!_formKey.currentState!.validate()) return;
     Navigator.of(context).pop(
-      _DatosFranja(
-        hora: _hora,
+      _DatosEdicionFranja(
+        hora: TimeOfDay(hour: _hora, minute: 0),
         aforo: int.parse(_aforoController.text.trim()),
         monitor: _monitorController.text.trim(),
       ),
@@ -889,30 +1047,33 @@ class _FranjaDialogState extends State<_FranjaDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final titulo =
-        widget.titulo ??
-        (widget.claseInicial != null ? 'Editar franja' : 'Añadir franja');
-
     return AlertDialog(
-      title: Text(titulo),
+      title: const Text('Editar franja'),
       content: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Selector de hora (se oculta al generar las franjas estándar).
-            if (!widget.ocultarHora)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.access_time),
-                title: const Text('Hora'),
-                subtitle: Text(_horaTexto),
-                trailing: TextButton(
-                  onPressed: _elegirHora,
-                  child: const Text('Cambiar'),
-                ),
+            DropdownButtonFormField<int>(
+              initialValue: _hora,
+              decoration: const InputDecoration(
+                labelText: 'Hora de inicio',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.access_time),
               ),
+              items: [
+                for (var h = 0; h <= 23; h++)
+                  DropdownMenuItem<int>(
+                    value: h,
+                    child: Text('${h.toString().padLeft(2, '0')}:00'),
+                  ),
+              ],
+              onChanged: (valor) {
+                if (valor != null) setState(() => _hora = valor);
+              },
+            ),
+            const SizedBox(height: 12),
             TextFormField(
               controller: _aforoController,
               keyboardType: TextInputType.number,
@@ -921,8 +1082,7 @@ class _FranjaDialogState extends State<_FranjaDialog> {
                 border: OutlineInputBorder(),
               ),
               validator: (valor) {
-                final texto = valor?.trim() ?? '';
-                final numero = int.tryParse(texto);
+                final numero = int.tryParse(valor?.trim() ?? '');
                 if (numero == null) return 'Introduce un número';
                 if (numero < 1 || numero > 10) {
                   return 'El aforo debe estar entre 1 y 10';
@@ -938,12 +1098,8 @@ class _FranjaDialogState extends State<_FranjaDialog> {
                 labelText: 'Monitor',
                 border: OutlineInputBorder(),
               ),
-              validator: (valor) {
-                if ((valor?.trim() ?? '').isEmpty) {
-                  return 'Indica el monitor';
-                }
-                return null;
-              },
+              validator: (valor) =>
+                  (valor?.trim() ?? '').isEmpty ? 'Indica el monitor' : null,
             ),
           ],
         ),

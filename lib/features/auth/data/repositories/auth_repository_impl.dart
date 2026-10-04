@@ -45,7 +45,7 @@ class AuthRepositoryImpl implements AuthRepository {
   final ProfileRemoteDataSource _profiles;
 
   @override
-  Future<AppUser> signUp({
+  Future<AppUser?> signUp({
     required String nombre,
     required String apellidos,
     required String email,
@@ -60,12 +60,19 @@ class AuthRepositoryImpl implements AuthRepository {
 
     try {
       // El hashing y el control de email duplicado los gestiona Auth (Req 1.4).
-      await _auth.signUp(
+      final respuesta = await _auth.signUp(
         nombre: nombre,
         apellidos: apellidos,
         email: email.trim(),
         password: password,
       );
+
+      // Si el proyecto exige confirmación por correo, Auth crea el usuario pero
+      // NO abre sesión. Sin sesión, RLS impediría leer el perfil, así que se
+      // devuelve `null` para que la UI avise de que revise su correo.
+      if (respuesta.session == null) {
+        return null;
+      }
 
       // Si se proporciona foto, se sube al bucket `avatars` y se asocia la URL
       // pública al perfil recién creado por el trigger de backend (Req 1.7).

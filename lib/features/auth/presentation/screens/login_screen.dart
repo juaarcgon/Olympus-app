@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../shared/widgets/widgets.dart';
 import '../providers/auth_providers.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
@@ -61,15 +62,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // enrutado al reaccionar al cambio de sesión de Supabase.
     final estado = ref.read(authNotifierProvider);
     estado.whenOrNull(
-      error: (error, _) => _mostrarMensaje(_mensajeDeError(error)),
+      error: (error, _) =>
+          AppNotifications.error(context, _mensajeDeError(error)),
     );
-  }
-
-  /// Muestra un `SnackBar` con un mensaje en español.
-  void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
   /// Traduce un error a un mensaje legible en español.

@@ -373,3 +373,75 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
   ]
 }
 ```
+
+## Mejoras post-MVP y ajustes de puesta en marcha
+
+Esta sección deja constancia del trabajo realizado tras completar el plan base, durante la puesta en marcha de la app con un proyecto Supabase real y las pruebas manuales en el navegador. No corresponde al plan original de implementación; documenta cambios de UX, correcciones de comportamiento y utilidades de desarrollo acordados con el usuario.
+
+- [x] 14. Configuración de ejecución y entorno local
+  - [x] 14.1 Variables de entorno de Supabase para desarrollo
+    - Crear `dart_defines.json` (ignorado por git) con `SUPABASE_URL` y `SUPABASE_ANON_KEY` (clave publishable `sb_publishable_...`)
+    - Añadir `dart_defines.json` a `.gitignore` para no versionar credenciales
+    - _Nota: la app se ejecuta con `--dart-define-from-file=dart_defines.json`_
+
+  - [x] 14.2 Scripts de arranque en puerto fijo (3000)
+    - `run_web.ps1`: lanza la app en Chrome en el puerto fijo 3000
+    - `fup.bat`: comando local equivalente para la raíz del proyecto
+    - Función global `fup` añadida al perfil de PowerShell del usuario (fuera del repo)
+    - _Motivo: evitar que la app se abra en un puerto distinto en cada ejecución_
+
+- [x] 15. Notificaciones de interfaz (toasts arriba a la derecha)
+  - [x] 15.1 Helper compartido de notificaciones
+    - Implementar `lib/shared/widgets/app_notifications.dart`: toasts flotantes anclados arriba a la derecha, apilables, con auto-cierre y botón de cerrar
+    - `AppNotifications.exito(...)` en verde; `AppNotifications.error(...)` en rojo
+    - Exportarlo en el barrel `lib/shared/widgets/widgets.dart`
+
+  - [x] 15.2 Migrar todas las pantallas de SnackBar al nuevo helper
+    - Auth (login, registro, recuperar y restablecer contraseña), perfil, administración y calendario/reservas
+    - Éxito en verde, errores (incluidos `Failure` de dominio) en rojo
+    - _Reemplaza los `SnackBar` inferiores por notificaciones superiores_
+
+- [x] 16. Correcciones del flujo de registro y sesión
+  - [x] 16.1 Resultado de registro y confirmación de correo
+    - `AuthRepository.signUp` devuelve `AppUser?`: `null` cuando el alta queda pendiente de confirmación por correo (sin sesión)
+    - `AuthNotifier.signUp` devuelve `SignUpResult` (`sesionIniciada` / `confirmacionPendiente`)
+    - La pantalla de registro avisa en el caso pendiente y vuelve al login
+
+  - [x] 16.2 Navegación tras registro con sesión activa
+    - La pantalla de registro hace `pop` tras el alta para que el shell de enrutado muestre la zona autenticada (calendario) sin pasos manuales
+    - _Corrige: el usuario se quedaba en la pantalla de registro aunque la sesión ya estaba activa_
+
+  - [x] 16.3 Invalidación del estado de usuario al cambiar de sesión
+    - `AppRouter` (convertido a `ConsumerStatefulWidget`) detecta el cambio de usuario en `onAuthStateChange` e invalida `profileNotifierProvider` y `adminNotifierProvider`
+    - _Corrige: tras registrar/entrar con otra cuenta se mostraban datos del usuario anterior (perfil cacheado)_
+
+- [x] 17. Creación de clases por rango horario
+  - [x] 17.1 Diálogo de generación de franjas por rango
+    - Reemplazar el diálogo de franja única por `_RangoFranjasDialog`: hora de inicio, hora de fin y aforo común; genera una franja de una (1) hora por cada hora del rango
+    - Un campo de monitor por franja (el monitor puede variar entre franjas)
+    - Ejemplo: rango 10:00–12:00 crea dos clases: 10:00–11:00 y 11:00–12:00
+    - Diálogo `_EditarFranjaDialog` independiente para editar una franja existente
+    - Retirar la acción fija "Generar franjas 17–20h"
+    - _Requirements: 8.1_
+
+  - [x] 17.2 Validación de franja en el repositorio
+    - `crearClase`/`editarClase` validan que el horario empiece en punto (`esHorarioClaseValido`)
+    - `HorarioClaseInvalidoFailure` para franjas no válidas; sin restricción de hora del día
+    - _Requirements: 8.1_
+
+- [x] 18. Zona horaria del gimnasio (Europe/Madrid)
+  - [x] 18.1 Utilidad central de zona horaria
+    - Añadir el paquete `timezone`; implementar `lib/core/utils/gym_timezone.dart` con `initGymTimezone()`, `utcAHoraGimnasio(...)` y `horaGimnasioAUtc(...)` para `Europe/Madrid` (cambio verano/invierno automático)
+    - Inicializar en `main.dart` al arrancar
+
+  - [x] 18.2 Aplicar la zona del gimnasio a crear/leer clases
+    - Al crear/editar: la hora elegida se interpreta como hora de Madrid y se persiste su equivalente en UTC
+    - Al leer: el `horario` en UTC se convierte a hora de Madrid para la UI (`_mapRowToClase`)
+    - El rango del día del calendario se calcula en hora de Madrid
+    - _Corrige: las clases se mostraban desfasadas (p. ej. 17:00 aparecía como 15:00) por no reconvertir la zona horaria_
+
+## Notas de operación (Supabase)
+
+- Confirmación de email: desactivada en el proyecto Supabase para desarrollo, de modo que el alta deja sesión activa inmediata.
+- Primer superadministrador: se asigna manualmente por SQL (`update public.profiles set rol = 'superadmin' where email = ...`), respetando el máximo de dos (2) superadmins; los siguientes se conceden desde el panel de administración.
+- Las migraciones base (0001–0008) se aplicaron manualmente desde el SQL Editor del dashboard; `supabase/apply_all_migrations.sql` las agrupa en un único script idempotente.

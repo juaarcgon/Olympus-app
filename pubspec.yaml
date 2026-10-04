@@ -38,6 +38,7 @@ dependencies:
   flutter_riverpod: ^3.4.3
   image_picker: ^1.2.3
   table_calendar: ^3.3.0
+  timezone: ^0.10.0
 
 dev_dependencies:
   flutter_test:
