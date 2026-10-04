@@ -86,22 +86,22 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 4.2, 4.3, 4.4, 6.5, 6.6, 8.10_
     - _Design: Servicio_Bono; Funciones RPC del backend_
 
-  - [ ]* 4.3 Prueba de propiedad: invariante del saldo 0..10
+  - [x] 4.3 Prueba de propiedad: invariante del saldo 0..10
     - **Property 2: La invariante del saldo se mantiene en 0..10**
     - Trazabilidad: `Feature: gym-management-app, Property 2`
     - **Validates: Requirements 4.4, 8.10**
 
-  - [ ]* 4.4 Prueba de propiedad: el consumo decrementa exactamente en 1
+  - [x] 4.4 Prueba de propiedad: el consumo decrementa exactamente en 1
     - **Property 11: El consumo de bono decrementa exactamente en 1**
     - Trazabilidad: `Feature: gym-management-app, Property 11`
     - **Validates: Requirements 4.2**
 
-  - [ ]* 4.5 Prueba de propiedad: restablecer el bono fija el saldo en 10
+  - [x] 4.5 Prueba de propiedad: restablecer el bono fija el saldo en 10
     - **Property 16: Restablecer el bono fija el saldo en 10**
     - Trazabilidad: `Feature: gym-management-app, Property 16`
     - **Validates: Requirements 6.5**
 
-  - [ ]* 4.6 Prueba de propiedad: ajustar fija el valor y rechaza fuera de rango
+  - [x] 4.6 Prueba de propiedad: ajustar fija el valor y rechaza fuera de rango
     - **Property 17: Ajustar el saldo fija el valor solicitado y rechaza fuera de rango**
     - Trazabilidad: `Feature: gym-management-app, Property 17`
     - **Validates: Requirements 6.6**
@@ -111,12 +111,12 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.11, 8.12_
     - _Design: Funciones RPC del backend; Tabla reservas_
 
-  - [ ]* 4.8 Prueba de propiedad: reserva con plaza libre crea confirmada y descuenta 1
+  - [x] 4.8 Prueba de propiedad: reserva con plaza libre crea confirmada y descuenta 1
     - **Property 23: Reserva con plaza libre crea confirmada y descuenta exactamente 1**
     - Trazabilidad: `Feature: gym-management-app, Property 23`
     - **Validates: Requirements 8.3**
 
-  - [ ]* 4.9 Prueba de propiedad: clase llena añade al final de la espera sin tocar saldo
+  - [x] 4.9 Prueba de propiedad: clase llena añade al final de la espera sin tocar saldo
     - **Property 24: Reserva en clase llena añade al final de la lista de espera sin tocar el saldo**
     - Trazabilidad: `Feature: gym-management-app, Property 24`
     - **Validates: Requirements 8.5**
@@ -247,10 +247,10 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Lectura de saldo (4.1); `restablecer_bono` fija 10 y `ajustar_bono` fija valor / rechaza fuera de rango vía RPC real
     - _Requirements: 4.1, 6.5, 6.6_
 
-- [~] 9. Checkpoint - Auth, perfil y bono integrados
+- [x] 9. Checkpoint - Auth, perfil y bono integrados
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Feature Admin: gestión de usuarios y superadministradores
+- [x] 10. Feature Admin: gestión de usuarios y superadministradores
   - [x] 10.1 Implementar las RPC administrativas
     - Migración `supabase/migrations/0005_rpc_admin.sql`: `suspender_usuario`, `reactivar_usuario`, `eliminar_usuario` (rechaza autoeliminación de superadmin), `conceder_superadmin` (bloqueo `FOR UPDATE` + conteo < 2); todas validan `es_superadmin()`
     - _Requirements: 5.1, 5.2, 5.4, 6.2, 6.3, 6.4, 6.7_
@@ -261,7 +261,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 5.2, 5.4, 6.7_
     - _Design: Servicio_Administracion; Error Handling_
 
-  - [ ]* 10.3 Prueba de propiedad: como máximo dos superadministradores
+  - [x] 10.3 Prueba de propiedad: como máximo dos superadministradores
     - **Property 12: Como máximo dos superadministradores**
     - Trazabilidad: `Feature: gym-management-app, Property 12`
     - **Validates: Requirements 5.1, 5.2**
@@ -286,7 +286,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Trazabilidad: `Feature: gym-management-app, Property 18`
     - **Validates: Requirements 6.7**
 
-  - [~] 10.8 Implementar providers y panel de administración
+  - [x] 10.8 Implementar providers y panel de administración
     - Provider de administración y pantallas de listado/gestión de usuarios (suspender, reactivar, eliminar, ajustar/restablecer bono, conceder superadmin)
     - _Requirements: 5.3, 6.1_
     - _Design: Capas del cliente Flutter_
@@ -295,7 +295,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Acceso de superadmin a gestión (5.3) y listado de usuarios (6.1)
     - _Requirements: 5.3, 6.1_
 
-- [ ] 11. Feature Reservas: calendario, aforo y lista de espera
+- [x] 11. Feature Reservas: calendario, aforo y lista de espera
   - [x] 11.1 Implementar las RPC transaccionales de reservas
     - Migración `supabase/migrations/0006_rpc_reservas.sql`: `reservar_clase(clase_id)` (valida saldo > 0, aforo, duplicados, lista de espera < 20, decremento atómico) y `cancelar_reserva(clase_id)` (libera plaza, reembolso si ≥ 2h, promoción FIFO del primero con saldo > 0 dentro de la transacción, o elimina entrada de espera sin tocar saldo)
     - _Requirements: 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.11, 8.12_
@@ -316,7 +316,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Trazabilidad: `Feature: gym-management-app, Property 22`
     - **Validates: Requirements 8.2**
 
-  - [~] 11.5 Implementar providers y pantallas de calendario/reserva
+  - [x] 11.5 Implementar providers y pantallas de calendario/reserva
     - Provider de reservas y pantallas de calendario (vista de clases, reservar, cancelar, estado de lista de espera) y gestión de clases para superadmin
     - _Requirements: 8.1, 8.3, 8.5, 8.7, 8.11_
     - _Design: Capas del cliente Flutter_
@@ -343,7 +343,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 7.2, 7.3, 9.2, 9.3, 9.4, 9.5, 9.8, 9.9_
     - _Design: Testing Strategy (pruebas de integración)_
 
-- [~] 13. Checkpoint final - Todas las features y pruebas integradas
+- [x] 13. Checkpoint final - Todas las features y pruebas integradas
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

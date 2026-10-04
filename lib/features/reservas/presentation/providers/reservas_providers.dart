@@ -152,6 +152,70 @@ class DiaReservasNotifier extends AsyncNotifier<DiaReservasView> {
     await refrescar();
   }
 
+  // --- Gestión del superadministrador (Req 8.1, 8.2) --------------------------
+  //
+  // Las operaciones de creación/edición/eliminación de Clases y de guardado del
+  // plan del día solo las puede realizar un superadministrador; la restricción
+  // la refuerzan las políticas RLS del backend, que traducen un intento sin
+  // privilegios a [AutorizacionInsuficienteFailure]. Estos comandos propagan
+  // los `Failure` de dominio sin alterar el estado y, tras completarse con
+  // éxito, refrescan la vista del día.
+
+  /// Crea una nueva franja horaria (Clase) en el día y refresca (Req 8.1).
+  ///
+  /// El [horario] combina la fecha del día seleccionado con la hora elegida por
+  /// el superadministrador; el [aforo] respeta la invariante 1..10 y [monitor]
+  /// es el nombre del monitor asignado. Propaga los `Failure` de dominio.
+  Future<void> crearFranja({
+    required DateTime horario,
+    required int aforo,
+    required String monitor,
+  }) async {
+    final repo = ref.read(reservasRepositoryProvider);
+    await repo.crearClase(horario: horario, aforo: aforo, monitor: monitor);
+    await refrescar();
+  }
+
+  /// Edita los campos indicados de la franja [claseId] y refresca (Req 8.1).
+  ///
+  /// Solo se modifican los parámetros no nulos; los omitidos conservan su valor
+  /// actual. Propaga los `Failure` de dominio sin alterar el estado.
+  Future<void> editarFranja(
+    String claseId, {
+    DateTime? horario,
+    int? aforo,
+    String? monitor,
+  }) async {
+    final repo = ref.read(reservasRepositoryProvider);
+    await repo.editarClase(
+      claseId,
+      horario: horario,
+      aforo: aforo,
+      monitor: monitor,
+    );
+    await refrescar();
+  }
+
+  /// Elimina la franja [claseId] del día y refresca (Req 8.1).
+  ///
+  /// Propaga los `Failure` de dominio sin alterar el estado.
+  Future<void> eliminarFranja(String claseId) async {
+    final repo = ref.read(reservasRepositoryProvider);
+    await repo.eliminarClase(claseId);
+    await refrescar();
+  }
+
+  /// Guarda (upsert) el plan de entrenamiento del día y refresca (Req 8.1, 8.2).
+  ///
+  /// Usa la fecha del día seleccionado del propio notifier; la lista de
+  /// [actividades] es la nueva lista ordenada del plan. Propaga los `Failure`
+  /// de dominio sin alterar el estado.
+  Future<void> guardarPlan(List<String> actividades) async {
+    final repo = ref.read(entrenamientoRepositoryProvider);
+    await repo.guardar(_fecha, actividades);
+    await refrescar();
+  }
+
   /// Vuelve a cargar la vista del día desde el backend (Req 8.1).
   Future<void> refrescar() async {
     state = const AsyncValue<DiaReservasView>.loading();

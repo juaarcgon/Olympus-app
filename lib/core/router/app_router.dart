@@ -19,9 +19,13 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/admin/presentation/screens/screens.dart';
 import '../../features/auth/presentation/screens/screens.dart';
+import '../../features/profile/domain/entities/profile.dart';
+import '../../features/profile/presentation/providers/profile_providers.dart';
 import '../../features/profile/presentation/screens/screens.dart';
 import '../../features/reservas/presentation/screens/screens.dart';
 
@@ -95,48 +99,77 @@ class _AppRouterState extends State<AppRouter> {
 /// Contenedor de la zona autenticada con navegación por pestañas.
 ///
 /// Mantiene el guard de sesión en [AppRouter] y organiza las pantallas
-/// autenticadas en una [BottomNavigationBar] con dos pestañas: "Calendario"
-/// ([CalendarioScreen]) y "Perfil" ([ProfileScreen]). El flujo de recuperación
-/// de contraseña permanece intacto porque [AppRouter] lo resuelve antes de
-/// llegar aquí.
-class HomeShell extends StatefulWidget {
+/// autenticadas en una [NavigationBar]. Siempre muestra las pestañas
+/// "Calendario" ([CalendarioScreen]) y "Perfil" ([ProfileScreen]); además, si
+/// el Usuario actual es superadministrador, añade una tercera pestaña
+/// "Administración" ([AdminScreen]) (Req 5.3). Para los Usuarios estándar la
+/// barra conserva únicamente las dos pestañas.
+///
+/// El rol se obtiene de [profileNotifierProvider]; mientras el perfil carga o
+/// si falla, se asume que NO es superadministrador y la pestaña permanece
+/// oculta. El flujo de recuperación de contraseña permanece intacto porque
+/// [AppRouter] lo resuelve antes de llegar aquí.
+class HomeShell extends ConsumerStatefulWidget {
   /// Crea el contenedor de la zona autenticada.
   const HomeShell({super.key});
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
-  /// Índice de la pestaña activa (0 = Calendario, 1 = Perfil).
+class _HomeShellState extends ConsumerState<HomeShell> {
+  /// Índice de la pestaña activa (0 = Calendario, 1 = Perfil,
+  /// 2 = Administración si procede).
   int _indice = 0;
-
-  /// Pantallas de cada pestaña, preservadas con [IndexedStack] para mantener su
-  /// estado al alternar.
-  static const List<Widget> _pantallas = <Widget>[
-    CalendarioScreen(),
-    ProfileScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    // Determina si el Usuario actual es superadministrador para decidir si se
+    // muestra la pestaña de administración (Req 5.3). Mientras carga o si hay
+    // error se asume que no lo es.
+    final esSuperadmin = ref
+        .watch(profileNotifierProvider)
+        .maybeWhen(
+          data: (Profile profile) => profile.esSuperadmin,
+          orElse: () => false,
+        );
+
+    // Pantallas y destinos base (siempre presentes).
+    final pantallas = <Widget>[
+      const CalendarioScreen(),
+      const ProfileScreen(),
+      if (esSuperadmin) const AdminScreen(),
+    ];
+
+    final destinos = <NavigationDestination>[
+      const NavigationDestination(
+        icon: Icon(Icons.calendar_month_outlined),
+        selectedIcon: Icon(Icons.calendar_month),
+        label: 'Calendario',
+      ),
+      const NavigationDestination(
+        icon: Icon(Icons.person_outline),
+        selectedIcon: Icon(Icons.person),
+        label: 'Perfil',
+      ),
+      if (esSuperadmin)
+        const NavigationDestination(
+          icon: Icon(Icons.admin_panel_settings_outlined),
+          selectedIcon: Icon(Icons.admin_panel_settings),
+          label: 'Administración',
+        ),
+    ];
+
+    // Si el rol deja de ser superadmin (p. ej. tras cerrar sesión) y la pestaña
+    // activa ya no existe, se vuelve a una pestaña válida.
+    final indiceSeguro = _indice.clamp(0, pantallas.length - 1);
+
     return Scaffold(
-      body: IndexedStack(index: _indice, children: _pantallas),
+      body: IndexedStack(index: indiceSeguro, children: pantallas),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _indice,
+        selectedIndex: indiceSeguro,
         onDestinationSelected: (indice) => setState(() => _indice = indice),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: 'Calendario',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
+        destinations: destinos,
       ),
     );
   }
