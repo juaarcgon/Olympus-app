@@ -48,6 +48,7 @@ app.*.map.json
 .env
 .env.*
 *.env
+dart_defines.json
 
 # Supabase CLI temp files
 supabase/.temp/
