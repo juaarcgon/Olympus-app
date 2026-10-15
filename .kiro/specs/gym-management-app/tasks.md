@@ -164,37 +164,37 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 1.4, 1.5, 1.6, 1.7, 2.2, 2.3, 9.1, 9.6, 9.10_
     - _Design: Servicio_Autenticacion; Error Handling; Supabase Storage_
 
-  - [ ]* 6.3 Prueba de propiedad: inicialización de bono y estado al registrarse
+  - [x] 6.3 Prueba de propiedad: inicialización de bono y estado al registrarse
     - **Property 1: Inicialización del bono y estado al registrarse**
     - Trazabilidad: `Feature: gym-management-app, Property 1`
     - **Validates: Requirements 1.1, 1.2**
 
-  - [ ]* 6.4 Prueba de propiedad: las contraseñas nunca se almacenan/comparan en texto plano
+  - [x] 6.4 Prueba de propiedad: las contraseñas nunca se almacenan/comparan en texto plano
     - **Property 3: Las contraseñas nunca se almacenan ni comparan en texto plano**
     - Trazabilidad: `Feature: gym-management-app, Property 3`
     - **Validates: Requirements 1.3, 2.5, 7.1, 9.7**
 
-  - [ ]* 6.5 Prueba de propiedad: el email duplicado se rechaza
+  - [x] 6.5 Prueba de propiedad: el email duplicado se rechaza
     - **Property 4: El email duplicado se rechaza**
     - Trazabilidad: `Feature: gym-management-app, Property 4`
     - **Validates: Requirements 1.4**
 
-  - [ ]* 6.6 Prueba de propiedad: el formato de email inválido se rechaza
+  - [x] 6.6 Prueba de propiedad: el formato de email inválido se rechaza
     - **Property 5: El formato de email inválido se rechaza**
     - Trazabilidad: `Feature: gym-management-app, Property 5`
     - **Validates: Requirements 1.5**
 
-  - [ ]* 6.7 Prueba de propiedad: la contraseña demasiado corta se rechaza
+  - [x] 6.7 Prueba de propiedad: la contraseña demasiado corta se rechaza
     - **Property 6: La contraseña demasiado corta se rechaza**
     - Trazabilidad: `Feature: gym-management-app, Property 6`
     - **Validates: Requirements 1.6, 9.6**
 
-  - [ ]* 6.8 Prueba de propiedad: el usuario suspendido no inicia sesión ni restablece contraseña
+  - [x] 6.8 Prueba de propiedad: el usuario suspendido no inicia sesión ni restablece contraseña
     - **Property 7: El usuario suspendido no puede iniciar sesión ni restablecer su contraseña**
     - Trazabilidad: `Feature: gym-management-app, Property 7`
     - **Validates: Requirements 2.3, 9.10**
 
-  - [ ]* 6.9 Prueba de propiedad: la solicitud de restablecimiento devuelve mensaje genérico
+  - [x] 6.9 Prueba de propiedad: la solicitud de restablecimiento devuelve mensaje genérico
     - **Property 29: La solicitud de restablecimiento devuelve siempre un mensaje genérico**
     - Trazabilidad: `Feature: gym-management-app, Property 29`
     - **Validates: Requirements 9.1**
@@ -206,7 +206,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 2.1, 2.4, 9.1, 9.6_
     - _Design: Capas del cliente Flutter; presentation/screens_
 
-  - [ ]* 6.11 Pruebas unitarias de flujos de autenticación
+  - [x] 6.11 Pruebas unitarias de flujos de autenticación
     - Login correcto establece sesión (2.1), logout finaliza sesión (2.4), asociación de foto en registro (1.7)
     - _Requirements: 1.7, 2.1, 2.4_
 
@@ -217,17 +217,17 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
     - _Design: Servicio_Usuarios_
 
-  - [ ]* 7.2 Prueba de propiedad: round trip de actualización de perfil
+  - [x] 7.2 Prueba de propiedad: round trip de actualización de perfil
     - **Property 8: Round trip de actualización de perfil**
     - Trazabilidad: `Feature: gym-management-app, Property 8`
     - **Validates: Requirements 3.2**
 
-  - [ ]* 7.3 Prueba de propiedad: el usuario estándar no puede modificar saldo ni estado
+  - [x] 7.3 Prueba de propiedad: el usuario estándar no puede modificar saldo ni estado
     - **Property 9: El usuario estándar no puede modificar su saldo ni su estado**
     - Trazabilidad: `Feature: gym-management-app, Property 9`
     - **Validates: Requirements 3.3, 3.4**
 
-  - [ ]* 7.4 Prueba de propiedad: el modelo de usuario es ampliable (round trip de metadata)
+  - [x] 7.4 Prueba de propiedad: el modelo de usuario es ampliable (round trip de metadata)
     - **Property 10: El modelo de usuario es ampliable (preservación de metadata)**
     - Trazabilidad: `Feature: gym-management-app, Property 10`
     - **Validates: Requirements 3.5**
@@ -243,7 +243,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 4.1, 6.5, 6.6_
     - _Design: Servicio_Bono; Funciones RPC del backend_
 
-  - [ ]* 8.2 Pruebas unitarias de lectura de saldo y RPC de bono
+  - [x] 8.2 Pruebas unitarias de lectura de saldo y RPC de bono
     - Lectura de saldo (4.1); `restablecer_bono` fija 10 y `ajustar_bono` fija valor / rechaza fuera de rango vía RPC real
     - _Requirements: 4.1, 6.5, 6.6_
 
@@ -266,22 +266,22 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - Trazabilidad: `Feature: gym-management-app, Property 12`
     - **Validates: Requirements 5.1, 5.2**
 
-  - [ ]* 10.4 Prueba de propiedad: el usuario estándar es denegado en gestión
+  - [x] 10.4 Prueba de propiedad: el usuario estándar es denegado en gestión
     - **Property 13: El usuario estándar es denegado en operaciones de gestión**
     - Trazabilidad: `Feature: gym-management-app, Property 13`
     - **Validates: Requirements 5.4**
 
-  - [ ]* 10.5 Prueba de propiedad: suspender y reactivar (round trip de estado)
+  - [x] 10.5 Prueba de propiedad: suspender y reactivar (round trip de estado)
     - **Property 14: Suspender y reactivar (round trip de estado)**
     - Trazabilidad: `Feature: gym-management-app, Property 14`
     - **Validates: Requirements 6.2, 6.3**
 
-  - [ ]* 10.6 Prueba de propiedad: la eliminación borra el registro
+  - [x] 10.6 Prueba de propiedad: la eliminación borra el registro
     - **Property 15: La eliminación de un usuario borra su registro**
     - Trazabilidad: `Feature: gym-management-app, Property 15`
     - **Validates: Requirements 6.4**
 
-  - [ ]* 10.7 Prueba de propiedad: un superadministrador no puede autoeliminarse
+  - [x] 10.7 Prueba de propiedad: un superadministrador no puede autoeliminarse
     - **Property 18: Un superadministrador no puede autoeliminarse**
     - Trazabilidad: `Feature: gym-management-app, Property 18`
     - **Validates: Requirements 6.7**
@@ -291,7 +291,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 5.3, 6.1_
     - _Design: Capas del cliente Flutter_
 
-  - [ ]* 10.9 Pruebas unitarias de acceso de superadmin
+  - [x] 10.9 Pruebas unitarias de acceso de superadmin
     - Acceso de superadmin a gestión (5.3) y listado de usuarios (6.1)
     - _Requirements: 5.3, 6.1_
 
@@ -306,12 +306,12 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.11, 8.12_
     - _Design: Servicio_Reservas; Error Handling_
 
-  - [ ]* 11.3 Prueba de propiedad: el aforo está en el rango 1..10
+  - [x] 11.3 Prueba de propiedad: el aforo está en el rango 1..10
     - **Property 21: El aforo de una clase está en el rango 1..10**
     - Trazabilidad: `Feature: gym-management-app, Property 21`
     - **Validates: Requirements 8.1**
 
-  - [ ]* 11.4 Prueba de propiedad: el usuario estándar no puede modificar clases
+  - [x] 11.4 Prueba de propiedad: el usuario estándar no puede modificar clases
     - **Property 22: El usuario estándar no puede modificar clases**
     - Trazabilidad: `Feature: gym-management-app, Property 22`
     - **Validates: Requirements 8.2**
@@ -321,7 +321,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 8.1, 8.3, 8.5, 8.7, 8.11_
     - _Design: Capas del cliente Flutter_
 
-  - [ ]* 11.6 Pruebas de integración de las RPC de reservas vs. el modelo de dominio
+  - [x] 11.6 Pruebas de integración de las RPC de reservas vs. el modelo de dominio
     - Verificar que `reservar_clase`/`cancelar_reserva` reales coinciden con el modelo puro, incluida la condición de carrera por la última plaza
     - _Requirements: 8.3, 8.5, 8.9, 8.12_
     - _Design: Testing Strategy (pruebas de integración)_

@@ -60,9 +60,13 @@ class ReservasRepositoryImpl implements ReservasRepository {
     required int aforo,
     required String monitor,
   }) async {
-    // El horario debe caer en una franja permitida (17:00–21:00 en punto).
+    // El horario debe caer en una franja permitida (en punto).
     if (!esHorarioClaseValido(horario)) {
       throw const HorarioClaseInvalidoFailure();
+    }
+    // El aforo debe estar en el rango 1..10 (Req 8.1).
+    if (!esAforoValido(aforo)) {
+      throw const AforoFueraDeRangoFailure();
     }
     try {
       final row = await _dataSource.insertClase(
@@ -86,6 +90,10 @@ class ReservasRepositoryImpl implements ReservasRepository {
     // Si se cambia el horario, debe caer en una franja permitida.
     if (horario != null && !esHorarioClaseValido(horario)) {
       throw const HorarioClaseInvalidoFailure();
+    }
+    // Si se cambia el aforo, debe estar en el rango 1..10 (Req 8.1).
+    if (aforo != null && !esAforoValido(aforo)) {
+      throw const AforoFueraDeRangoFailure();
     }
     try {
       final cambios = <String, dynamic>{};

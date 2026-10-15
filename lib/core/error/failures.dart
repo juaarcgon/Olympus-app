@@ -102,6 +102,14 @@ class HorarioClaseInvalidoFailure extends Failure {
   ]);
 }
 
+/// El aforo indicado para la Clase está fuera del rango permitido 1..10
+/// (Req 8.1).
+class AforoFueraDeRangoFailure extends Failure {
+  const AforoFueraDeRangoFailure([
+    super.mensaje = 'El aforo debe estar entre 1 y 10',
+  ]);
+}
+
 /// El rango horario indicado para generar franjas no es válido.
 ///
 /// La hora de fin debe ser estrictamente posterior a la de inicio para que el

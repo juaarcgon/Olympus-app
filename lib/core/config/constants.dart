@@ -23,6 +23,12 @@ const int kBonoMin = 0;
 /// (10) y puede aumentarse en el futuro sin cambiar la estructura (Req 8.1).
 const int kAforoMax = 10;
 
+/// Aforo mínimo de una Clase.
+///
+/// Límite inferior del número de plazas de una Clase. Una Clase debe ofrecer al
+/// menos una (1) plaza (Req 8.1).
+const int kAforoMin = 1;
+
 /// Número máximo de Usuarios en la Lista_De_Espera de una Clase.
 ///
 /// Su valor es veinte (20) (Req 8.12).
@@ -52,3 +58,10 @@ const int kDuracionFranjaHoras = 1;
 bool esHorarioClaseValido(DateTime horario) {
   return horario.minute == 0 && horario.second == 0 && horario.millisecond == 0;
 }
+
+/// Comprueba si [aforo] está dentro del rango permitido de una Clase (Req 8.1).
+///
+/// Devuelve `true` si y solo si `kAforoMin <= aforo <= kAforoMax` (actualmente
+/// 1..10). Espejo en el cliente del `CHECK (aforo BETWEEN 1 AND 10)` de la
+/// tabla `clases`, la última línea de defensa en la base de datos.
+bool esAforoValido(int aforo) => aforo >= kAforoMin && aforo <= kAforoMax;

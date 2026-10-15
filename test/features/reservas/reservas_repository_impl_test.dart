@@ -9,6 +9,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olympus/core/error/error.dart';
+import 'package:olympus/core/utils/gym_timezone.dart';
 import 'package:olympus/features/reservas/data/datasources/reservas_remote_datasource.dart';
 import 'package:olympus/features/reservas/data/repositories/reservas_repository_impl.dart';
 import 'package:olympus/features/reservas/domain/entities/entities.dart';
@@ -116,6 +117,14 @@ Map<String, dynamic> _claseRow({
 void main() {
   late _FakeDataSource fake;
   late ReservasRepositoryImpl repo;
+
+  setUpAll(() {
+    // `_mapRowToClase` convierte el horario UTC a la hora del gimnasio
+    // (Europe/Madrid) mediante `utcAHoraGimnasio`, que depende de la zona
+    // horaria inicializada. En la app esto ocurre en `main`; en las pruebas hay
+    // que inicializarla explícitamente para evitar un LateInitializationError.
+    initGymTimezone();
+  });
 
   setUp(() {
     fake = _FakeDataSource();
