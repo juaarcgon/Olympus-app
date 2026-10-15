@@ -326,18 +326,18 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
     - _Requirements: 8.3, 8.5, 8.9, 8.12_
     - _Design: Testing Strategy (pruebas de integración)_
 
-- [ ] 12. Integración de seguridad y recuperación de contraseña (Supabase Auth/RLS)
-  - [ ]* 12.1 Prueba de propiedad: un usuario solo accede a sus propios datos (salvo superadmin)
+- [x] 12. Integración de seguridad y recuperación de contraseña (Supabase Auth/RLS)
+  - [x] 12.1 Prueba de propiedad: un usuario solo accede a sus propios datos (salvo superadmin)
     - **Property 19: Un usuario solo accede a sus propios datos (salvo superadmin)**
     - Trazabilidad: `Feature: gym-management-app, Property 19`
     - **Validates: Requirements 7.2**
 
-  - [ ]* 12.2 Prueba de propiedad: sin sesión no hay acceso a datos de usuario
+  - [x] 12.2 Prueba de propiedad: sin sesión no hay acceso a datos de usuario
     - **Property 20: Sin sesión no hay acceso a datos de usuario**
     - Trazabilidad: `Feature: gym-management-app, Property 20`
     - **Validates: Requirements 7.3**
 
-  - [ ]* 12.3 Pruebas de integración de RLS y del flujo de restablecimiento
+  - [x] 12.3 Pruebas de integración de RLS y del flujo de restablecimiento
     - RLS deniega acceso anónimo y cruzado contra Supabase local (refuerzo de Property 19 y 20)
     - Envío del enlace (9.2), caducidad a 60 min (9.3), token caducado (9.4), token usado (9.5/9.9), invalidación de sesiones tras reset (9.8)
     - _Requirements: 7.2, 7.3, 9.2, 9.3, 9.4, 9.5, 9.8, 9.9_
