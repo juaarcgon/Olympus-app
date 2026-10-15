@@ -50,5 +50,10 @@ app.*.map.json
 *.env
 dart_defines.json
 
+# Android release signing (keystore + credenciales). Nunca versionar.
+android/key.properties
+*.jks
+*.keystore
+
 # Supabase CLI temp files
 supabase/.temp/

@@ -1,0 +1,23 @@
+# Plantilla de configuración de firma de release de Android para Olympus.
+#
+# COPIA este archivo a `android/key.properties` y rellena los valores con los
+# datos de TU keystore. El archivo real `key.properties` NO debe versionarse
+# (está en .gitignore): contiene contraseñas de firma.
+#
+# 1) Genera un keystore propio (una sola vez; guárdalo en lugar seguro y haz
+#    copia de seguridad: si lo pierdes no podrás publicar actualizaciones):
+#
+#    keytool -genkey -v -keystore olympus-release.jks \
+#      -keyalg RSA -keysize 2048 -validity 10000 -alias olympus
+#
+#    (En Windows PowerShell usa la misma orden en una sola línea.)
+#
+# 2) Mueve `olympus-release.jks` a una carpeta segura FUERA del repositorio
+#    (por ejemplo tu carpeta de usuario) y pon su ruta absoluta en storeFile.
+#
+# 3) Rellena las contraseñas y el alias que usaste al crear el keystore.
+
+storeFile=C:/Users/juanm/keystores/olympus-release.jks
+storePassword=CAMBIA_ESTA_CONTRASEÑA
+keyAlias=olympus
+keyPassword=CAMBIA_ESTA_CONTRASEÑA

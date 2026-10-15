@@ -1,4 +1,4 @@
-package com.example.olympus
+package com.olympus.gym
 
 import io.flutter.embedding.android.FlutterActivity
 
