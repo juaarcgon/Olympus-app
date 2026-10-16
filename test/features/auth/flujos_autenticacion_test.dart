@@ -127,6 +127,14 @@ class _FakeAuthRepository implements AuthRepository {
     throw UnimplementedError('no usado en estas pruebas');
   }
 
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    throw UnimplementedError('no usado en estas pruebas');
+  }
+
   void dispose() => _controller.close();
 }
 

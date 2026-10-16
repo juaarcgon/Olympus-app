@@ -90,6 +90,22 @@ class AuthRemoteDataSource {
     return _auth.updateUser(UserAttributes(password: newPassword));
   }
 
+  /// Correo electrónico del usuario de la sesión activa, o `null` si no hay
+  /// sesión. Se usa para reautenticar al cambiar la contraseña.
+  String? get currentEmail => _auth.currentUser?.email;
+
+  /// Reautentica al usuario de la sesión comprobando su [currentPassword].
+  ///
+  /// Reintenta `signInWithPassword` con el email de la sesión actual; si la
+  /// contraseña actual no es correcta, el SDK lanza `AuthException`. Es el paso
+  /// de verificación previo a un cambio de contraseña del usuario autenticado.
+  Future<AuthResponse> reauthenticate({
+    required String email,
+    required String currentPassword,
+  }) {
+    return _auth.signInWithPassword(email: email, password: currentPassword);
+  }
+
   /// Flujo de cambios de estado de autenticación del SDK (Req 7.3).
   Stream<AuthState> authStateChanges() => _auth.onAuthStateChange;
 }

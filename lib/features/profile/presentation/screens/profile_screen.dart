@@ -23,6 +23,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../auth/presentation/screens/screens.dart';
 import '../../domain/entities/profile.dart';
 import '../providers/profile_providers.dart';
 
@@ -290,6 +291,21 @@ class _FormularioPerfil extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('Guardar cambios'),
+            ),
+            const SizedBox(height: 12),
+            // Acceso al cambio de contraseña para el Usuario autenticado que
+            // conoce su contraseña actual (distinto del flujo de recuperación
+            // por correo, que es para quien la ha olvidado).
+            OutlinedButton.icon(
+              onPressed: guardando
+                  ? null
+                  : () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ChangePasswordScreen(),
+                      ),
+                    ),
+              icon: const Icon(Icons.lock_reset_outlined),
+              label: const Text('Cambiar contraseña'),
             ),
           ],
         ),

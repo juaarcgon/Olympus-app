@@ -71,6 +71,17 @@ abstract class AuthRepository {
   /// longitud mínima (Req 9.6), validada por la implementación.
   Future<void> updatePasswordWithToken(String newPassword);
 
+  /// Cambia la contraseña del Usuario con sesión activa desde su perfil.
+  ///
+  /// Reautentica primero con [currentPassword] (verificación de seguridad) y,
+  /// si es correcta, fija la [newPassword]. La implementación valida la
+  /// longitud mínima de la nueva contraseña y traduce los errores a `Failure`
+  /// (contraseña actual incorrecta -> credenciales inválidas).
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
+
   /// Flujo de los cambios de estado de autenticación (Req 7.3).
   ///
   /// Emite un [AuthState] cada vez que la sesión cambia (inicio de sesión,

@@ -170,6 +170,27 @@ class AuthNotifier extends AsyncNotifier<AppUser?> {
       return null;
     });
   }
+
+  /// Cambia la contraseña del Usuario con sesión activa desde su perfil.
+  ///
+  /// Reautentica con [currentPassword] y, si es correcta, fija [newPassword].
+  /// El estado refleja la carga y los errores (contraseña actual incorrecta,
+  /// nueva demasiado corta). Devuelve `true` si el cambio tuvo éxito.
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final repository = ref.read(authRepositoryProvider);
+    state = const AsyncValue<AppUser?>.loading();
+    state = await AsyncValue.guard(() async {
+      await repository.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return null;
+    });
+    return !state.hasError;
+  }
 }
 
 /// Expone el estado de las operaciones de autenticación (carga/éxito/error).
