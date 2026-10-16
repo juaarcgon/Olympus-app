@@ -108,25 +108,34 @@ class _NotificationStackState extends State<_NotificationStack> {
 
   @override
   Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    return Positioned(
-      top: media.padding.top + 12,
-      right: 12,
-      child: Material(
-        type: MaterialType.transparency,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              for (final item in _items)
-                _NotificationCard(
-                  key: ValueKey<int>(item.id),
-                  data: item,
-                  onDismiss: () => _remove(item.id),
+    // Se usa Positioned.fill + Align para anclar arriba a la derecha de forma
+    // robusta en cualquier plataforma (en algunos dispositivos un `Positioned`
+    // con `top` calculado a mano no quedaba visible). IgnorePointer en el área
+    // vacía deja pasar los toques; las tarjetas sí son interactivas (cerrar).
+    return Positioned.fill(
+      child: SafeArea(
+        child: Align(
+          alignment: Alignment.topRight,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12, right: 12, left: 12),
+            child: Material(
+              type: MaterialType.transparency,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    for (final item in _items)
+                      _NotificationCard(
+                        key: ValueKey<int>(item.id),
+                        data: item,
+                        onDismiss: () => _remove(item.id),
+                      ),
+                  ],
                 ),
-            ],
+              ),
+            ),
           ),
         ),
       ),
