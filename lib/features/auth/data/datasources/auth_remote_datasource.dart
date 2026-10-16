@@ -77,9 +77,19 @@ class AuthRemoteDataSource {
   /// Cierra la sesión activa del usuario (Req 2.4).
   Future<void> signOut() => _auth.signOut();
 
+  /// Deep link al que Supabase redirige tras pulsar el enlace del correo de
+  /// recuperación. En Android lo captura el intent-filter del esquema
+  /// `io.olympus` (host `reset-password`) y abre la app; el SDK procesa el
+  /// token y emite el evento `passwordRecovery`. Debe estar dado de alta en las
+  /// Redirect URLs del panel de Supabase.
+  static const String kResetRedirectTo = 'io.olympus://reset-password';
+
   /// Envía el enlace de restablecimiento de contraseña al [email] (Req 9.2).
-  Future<void> resetPasswordForEmail(String email) {
-    return _auth.resetPasswordForEmail(email);
+  ///
+  /// En plataformas no web se indica [redirectTo] para que el enlace del correo
+  /// vuelva a la app mediante deep link; en web se usa el origen por defecto.
+  Future<void> resetPasswordForEmail(String email, {String? redirectTo}) {
+    return _auth.resetPasswordForEmail(email, redirectTo: redirectTo);
   }
 
   /// Actualiza la contraseña del usuario en la sesión actual (Req 9.7).

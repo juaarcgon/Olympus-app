@@ -29,6 +29,19 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Deep link del flujo de recuperación de contraseña.
+                 El enlace del correo de Supabase redirige a
+                 io.olympus://reset-password; Android abre la app con este
+                 esquema para que el SDK procese el token y se muestre la
+                 pantalla de nueva contraseña (Req 9.6/9.7). Debe coincidir con
+                 el `redirectTo` del cliente y con las Redirect URLs del panel
+                 de Supabase. -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="io.olympus" android:host="reset-password"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

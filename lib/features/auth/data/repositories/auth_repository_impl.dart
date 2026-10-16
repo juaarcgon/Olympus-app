@@ -18,6 +18,7 @@
 //
 // Ref. diseño: "Servicio_Autenticacion"; "Error Handling"; "Supabase Storage".
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -123,10 +124,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> requestPasswordReset(String email) async {
+    // En móvil/escritorio el enlace del correo debe volver a la app por deep
+    // link; en web se usa el origen por defecto del navegador (redirectTo null).
+    final redirectTo = kIsWeb ? null : AuthRemoteDataSource.kResetRedirectTo;
+
     // Respuesta SIEMPRE genérica: la operación nunca revela si el email existe
     // (Req 9.1). Los errores del SDK se normalizan para no filtrar existencia.
     try {
-      await _auth.resetPasswordForEmail(email.trim());
+      await _auth.resetPasswordForEmail(email.trim(), redirectTo: redirectTo);
     } on AuthException {
       // Se ignora: devolver un error aquí podría revelar si la cuenta existe.
     } on Object {

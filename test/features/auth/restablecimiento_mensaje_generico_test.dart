@@ -73,7 +73,7 @@ class _FakeAuthDataSource extends AuthRemoteDataSource {
   final List<String> emailsSolicitados = <String>[];
 
   @override
-  Future<void> resetPasswordForEmail(String email) async {
+  Future<void> resetPasswordForEmail(String email, {String? redirectTo}) async {
     emailsSolicitados.add(email);
     switch (mundo) {
       case MundoEmail.cuentaExiste:
