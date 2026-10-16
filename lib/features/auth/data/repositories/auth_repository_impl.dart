@@ -170,13 +170,43 @@ class AuthRepositoryImpl implements AuthRepository {
 
   /// Traduce una [AuthException] del alta a un [Failure] de dominio (Req 1.4).
   ///
-  /// Un email ya registrado se convierte en [EmailEnUsoFailure]; el resto se
-  /// trata como credenciales inválidas por defecto.
+  /// Un email ya registrado se convierte en [EmailEnUsoFailure]; una contraseña
+  /// rechazada por la política del proyecto en [PasswordCortaFailure]. Para
+  /// cualquier otro fallo de Auth (p. ej. registros deshabilitados o límite de
+  /// peticiones) se conserva el mensaje real del servidor en un
+  /// [OperacionFallidaFailure], en lugar de etiquetarlo erróneamente como
+  /// "credenciales incorrectas".
   Failure _mapAuthExceptionSignUp(AuthException e) {
     if (_esEmailEnUso(e)) {
       return const EmailEnUsoFailure();
     }
-    return const CredencialesInvalidasFailure();
+    if (_esPasswordDebil(e)) {
+      return const PasswordCortaFailure();
+    }
+    // Mensaje honesto: no sabemos clasificarlo, así que mostramos el del
+    // backend para no confundir al usuario ni ocultar la causa real.
+    final mensaje = e.message.trim();
+    return OperacionFallidaFailure(
+      mensaje.isEmpty ? 'No se ha podido completar el registro' : mensaje,
+    );
+  }
+
+  /// Detecta que Supabase ha rechazado la contraseña por su política del
+  /// proyecto (longitud/complejidad), señal distinta de "email en uso".
+  ///
+  /// Supabase usa el código `weak_password` y/o mensajes como "Password should
+  /// be at least ..." o "password is too weak".
+  bool _esPasswordDebil(AuthException e) {
+    final code = e.code?.toLowerCase() ?? '';
+    if (code.contains('weak') && code.contains('password')) return true;
+    if (code.contains('password')) return true;
+    final msg = e.message.toLowerCase();
+    return msg.contains('password') &&
+        (msg.contains('weak') ||
+            msg.contains('should be') ||
+            msg.contains('at least') ||
+            msg.contains('característ') ||
+            msg.contains('contraseña'));
   }
 
   /// Traduce una [AuthException] del inicio de sesión (Req 2.2, 2.3).
