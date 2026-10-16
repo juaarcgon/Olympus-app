@@ -284,7 +284,20 @@ class ReservasRepositoryImpl implements ReservasRepository {
       return const SinClasesFailure();
     }
 
-    // '42501' (sin sesión) y cualquier otro rechazo: autorización insuficiente.
-    return const AutorizacionInsuficienteFailure();
+    // '42501' es específicamente falta de sesión/autorización en el backend.
+    if (e.code == '42501') {
+      return const AutorizacionInsuficienteFailure();
+    }
+
+    // Cualquier otro error (p. ej. la RPC no existe -> PGRST202, o un fallo
+    // inesperado): se conserva el mensaje real del servidor en lugar de
+    // etiquetarlo erróneamente como "sin autorización", para no ocultar la
+    // causa real.
+    final mensajeLimpio = mensaje.trim();
+    return OperacionFallidaFailure(
+      mensajeLimpio.isEmpty
+          ? 'No se ha podido completar la reserva'
+          : mensajeLimpio,
+    );
   }
 }
