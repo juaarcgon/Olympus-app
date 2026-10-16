@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Acceso a red: necesario en release para comunicarse con Supabase
+         (Auth, Postgres, Storage). En debug/profile se declara en sus propios
+         manifests; en release debe estar aquí o la app no tiene red. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="olympus"
         android:name="${applicationName}"

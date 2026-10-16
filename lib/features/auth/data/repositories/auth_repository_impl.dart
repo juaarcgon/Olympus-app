@@ -156,6 +156,45 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    // Longitud mínima de la nueva contraseña (Req 1.6/9.6).
+    final passwordFailure = validarPassword(newPassword);
+    if (passwordFailure != null) throw passwordFailure;
+
+    // Debe haber una sesión activa con email para poder reautenticar.
+    final email = _auth.currentEmail;
+    if (email == null) {
+      throw const CredencialesInvalidasFailure();
+    }
+
+    // Reautenticación: verifica la contraseña ACTUAL antes de cambiarla. Si no
+    // coincide, Auth lanza y lo traducimos a credenciales inválidas (Req 2.2).
+    try {
+      await _auth.reauthenticate(
+        email: email,
+        currentPassword: currentPassword,
+      );
+    } on AuthException {
+      throw const CredencialesInvalidasFailure();
+    }
+
+    // Verificación superada: fija la nueva contraseña.
+    try {
+      await _auth.updatePassword(newPassword);
+    } on AuthException catch (e) {
+      // Si Auth rechaza la nueva contraseña por su política, lo reflejamos.
+      if (_esPasswordDebil(e)) throw const PasswordCortaFailure();
+      final mensaje = e.message.trim();
+      throw OperacionFallidaFailure(
+        mensaje.isEmpty ? 'No se ha podido cambiar la contraseña' : mensaje,
+      );
+    }
+  }
+
+  @override
   Stream<AuthState> authStateChanges() => _auth.authStateChanges();
 
   /// Cierra la sesión ignorando cualquier error, usado tras detectar una cuenta
