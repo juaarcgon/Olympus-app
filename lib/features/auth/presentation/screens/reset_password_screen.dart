@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../core/router/password_recovery_state.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../providers/auth_providers.dart';
@@ -59,11 +60,22 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     if (!mounted) return;
 
     final estado = ref.read(authNotifierProvider);
-    estado.when(
-      data: (_) =>
-          AppNotifications.exito(context, 'Tu contraseña se ha actualizado'),
-      loading: () {},
-      error: (error, _) =>
+    await estado.when(
+      data: (_) async {
+        // Flujo de recuperación consumido.
+        finalizarRecuperacionPassword();
+        // Se cierra la sesión temporal de recuperación para que el Usuario
+        // vuelva al login y acceda con su nueva contraseña (refuerza Req 9.8:
+        // no se continúa con una sesión previa tras el restablecimiento).
+        await ref.read(authNotifierProvider.notifier).signOut();
+        if (!mounted) return;
+        AppNotifications.exito(
+          context,
+          'Contraseña actualizada. Inicia sesión con tu nueva contraseña.',
+        );
+      },
+      loading: () async {},
+      error: (error, _) async =>
           AppNotifications.error(context, _mensajeDeError(error)),
     );
   }

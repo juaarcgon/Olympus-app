@@ -49,5 +49,16 @@ Future<void> initSupabase() async {
     '--dart-define=SUPABASE_ANON_KEY=...',
   );
 
-  await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
+  // authFlowType.implicit: el token de recuperación viaja en el fragmento del
+  // enlace y el SDK abre la sesión directamente al procesar el deep link, sin
+  // el canje de `code_verifier` de PKCE (que falla si el verifier no está
+  // disponible al volver desde el navegador y produce un falso "enlace
+  // caducado"). Más fiable para el deep link del correo en móvil.
+  await Supabase.initialize(
+    url: supabaseUrl,
+    publishableKey: supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.implicit,
+    ),
+  );
 }

@@ -29,6 +29,7 @@ import '../../features/profile/domain/entities/profile.dart';
 import '../../features/profile/presentation/providers/profile_providers.dart';
 import '../../features/profile/presentation/screens/screens.dart';
 import '../../features/reservas/presentation/screens/screens.dart';
+import 'password_recovery_state.dart';
 
 /// Widget raíz del shell de enrutado con guarda de sesión.
 ///
@@ -49,11 +50,6 @@ class _AppRouterState extends ConsumerState<AppRouter> {
   /// Id del usuario de la sesión anterior, para detectar cambios de cuenta.
   String? _usuarioAnterior;
 
-  /// Indica que hay un flujo de recuperación de contraseña en curso: el Usuario
-  /// abrió el enlace de restablecimiento y debe fijar una nueva contraseña
-  /// (Req 9.6/9.7) antes de continuar a la zona autenticada.
-  bool _recuperandoPassword = false;
-
   @override
   void initState() {
     super.initState();
@@ -65,7 +61,10 @@ class _AppRouterState extends ConsumerState<AppRouter> {
     _usuarioAnterior = _session?.user.id;
 
     // La guarda reacciona a cualquier cambio de autenticación (login, logout,
-    // refresco de token, restablecimiento de contraseña, etc.).
+    // refresco de token, etc.). El evento de recuperación de contraseña se
+    // observa de forma independiente en [recuperacionPasswordActiva], que se
+    // suscribe desde `main()` para no perderse el deep link del correo aunque
+    // llegue antes de montar este widget.
     _authSubscription = auth.onAuthStateChange.listen((AuthState state) {
       if (!mounted) return;
 
@@ -80,16 +79,7 @@ class _AppRouterState extends ConsumerState<AppRouter> {
         ref.invalidate(adminNotifierProvider);
       }
 
-      setState(() {
-        _session = state.session;
-        // Al abrir el enlace de recuperación Supabase emite `passwordRecovery`
-        // con una sesión temporal: desviamos a la pantalla de nueva contraseña.
-        if (state.event == AuthChangeEvent.passwordRecovery) {
-          _recuperandoPassword = true;
-        } else if (state.event == AuthChangeEvent.signedOut) {
-          _recuperandoPassword = false;
-        }
-      });
+      setState(() => _session = state.session);
     });
   }
 
@@ -101,15 +91,22 @@ class _AppRouterState extends ConsumerState<AppRouter> {
 
   @override
   Widget build(BuildContext context) {
-    // Prioridad al flujo de recuperación: aunque exista una sesión temporal, el
-    // Usuario debe fijar su nueva contraseña primero (Req 9.6/9.7).
-    if (_recuperandoPassword) {
-      return const ResetPasswordScreen();
-    }
+    // El estado de recuperación se observa aparte (capturado desde main()), de
+    // modo que el deep link del correo no se pierda por timing de montaje.
+    return ValueListenableBuilder<bool>(
+      valueListenable: recuperacionPasswordActiva,
+      builder: (context, recuperando, _) {
+        // Prioridad al flujo de recuperación: aunque exista una sesión temporal,
+        // el Usuario debe fijar su nueva contraseña primero (Req 9.6/9.7).
+        if (recuperando) {
+          return const ResetPasswordScreen();
+        }
 
-    // Sin sesión → ramas públicas; con sesión → ramas autenticadas (Req 7.3).
-    final bool isAuthenticated = _session != null;
-    return isAuthenticated ? const HomeShell() : const LoginScreen();
+        // Sin sesión → ramas públicas; con sesión → ramas autenticadas (Req 7.3).
+        final bool isAuthenticated = _session != null;
+        return isAuthenticated ? const HomeShell() : const LoginScreen();
+      },
+    );
   }
 }
 

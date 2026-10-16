@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import 'core/router/password_recovery_state.dart';
 import 'core/router/router.dart';
 import 'core/theme/theme.dart';
 
@@ -20,6 +21,7 @@ class OlympusApp extends StatelessWidget {
     return MaterialApp(
       title: 'Olympus',
       debugShowCheckedModeBanner: false,
+      navigatorKey: rootNavigatorKey,
       theme: AppTheme.light,
       home: const AppRouter(),
     );

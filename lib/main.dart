@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/config/config.dart';
+import 'core/router/password_recovery_state.dart';
 import 'core/utils/gym_timezone.dart';
 
 Future<void> main() async {
@@ -18,5 +19,8 @@ Future<void> main() async {
   // clases sea siempre la de España, independiente del dispositivo.
   initGymTimezone();
   await initSupabase();
+  // Observa el evento de recuperación de contraseña cuanto antes: el deep link
+  // del correo puede procesarse antes de montar el AppRouter, así no se pierde.
+  observarRecuperacionPassword();
   runApp(const ProviderScope(child: OlympusApp()));
 }
