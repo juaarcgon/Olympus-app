@@ -8,10 +8,15 @@
 -- Ejemplo: a las 18:00 no se puede reservar la franja de las 18:00 ni ninguna
 -- anterior.
 --
--- Se redefine `reservar_clase` con `create or replace` manteniendo intacta
--- toda la lógica previa (saldo, aforo, duplicados, lista de espera FIFO) y
--- añadiendo, justo tras cargar la Clase, la comprobación temporal. Es la línea
--- de defensa real del backend; el cliente además oculta el botón de reservar.
+-- Se redefine `reservar_clase` con `create or replace` partiendo de la versión
+-- vigente de la migración 0010 (que marca `app.bono_operacion` para que el
+-- trigger de inmutabilidad permita descontar el bono) y añadiendo, justo tras
+-- cargar la Clase, la comprobación temporal. Es la línea de defensa real del
+-- backend; el cliente además oculta el botón de reservar.
+--
+-- IMPORTANTE: no eliminar el `set_config('app.bono_operacion', ...)`. Sin esa
+-- marca el trigger `profiles_proteger_columnas` rechaza el descuento del saldo
+-- con ERRCODE 42501 y la app muestra "No tienes autorización".
 -- _Requirements: 8.3, 8.4, 8.5, 8.6, 8.12_
 
 create or replace function public.reservar_clase(p_clase_id uuid)
@@ -35,6 +40,10 @@ begin
         raise exception 'No autenticado: se requiere una sesion activa'
             using errcode = '42501';
     end if;
+
+    -- Marca la operación del sistema para que el trigger permita tocar el bono
+    -- (migración 0010).
+    perform set_config('app.bono_operacion', 'on', true);
 
     -- Carga la Clase: aforo y horario. Si no existe, se informa como no
     -- encontrada.

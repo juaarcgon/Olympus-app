@@ -6,6 +6,7 @@
 // franja individual. Son modelos inmutables de la capa de presentación: no
 // dependen del SDK de Supabase (Req 8.1, 8.3, 8.5).
 
+import '../../../../core/config/constants.dart';
 import '../../domain/entities/clase.dart';
 import '../../domain/entities/entrenamiento_dia.dart';
 import '../../domain/entities/reserva.dart';
@@ -68,6 +69,17 @@ class FranjaReserva {
   /// Indica si el Usuario puede reservar esta franja: sin reserva previa y la
   /// hora de inicio aún es futura.
   bool get reservable => sinReserva && !yaEmpezada;
+
+  /// Indica si cancelar AHORA la reserva haría perder la clase del bono.
+  ///
+  /// Solo una reserva confirmada consume clase; la devolución exige al menos
+  /// [kCancelacionHoras] (2 h) de antelación, igual que la RPC
+  /// `cancelar_reserva` (Req 8.7, 8.8). Cancelar una entrada en lista de
+  /// espera nunca cuesta clase (Req 8.11).
+  bool get cancelarSinDevolucion =>
+      tengoConfirmada &&
+      clase.horario.toUtc().difference(DateTime.now().toUtc()) <
+          const Duration(hours: kCancelacionHoras);
 
   /// Indica si el Usuario tiene una reserva confirmada en esta franja.
   bool get tengoConfirmada => miReserva?.esConfirmada ?? false;

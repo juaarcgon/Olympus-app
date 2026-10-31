@@ -108,7 +108,22 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
   }
 
   /// Cancela la reserva del Usuario en la franja [claseId] y lo notifica.
+  ///
+  /// Si la cancelación haría perder la clase del bono (reserva confirmada con
+  /// menos de 2 h de antelación, Req 8.8), pide antes confirmación explícita.
   Future<void> _cancelar(String claseId) async {
+    final franja = ref
+        .read(diaReservasProvider)
+        .asData
+        ?.value
+        .franjas
+        .where((f) => f.clase.id == claseId)
+        .firstOrNull;
+    if (franja != null && franja.cancelarSinDevolucion) {
+      final confirmado = await _confirmarCancelacionSinDevolucion(franja.clase);
+      if (confirmado != true || !mounted) return;
+    }
+
     try {
       await ref.read(diaReservasProvider.notifier).cancelar(claseId);
       _mostrarExito('Reserva cancelada');
@@ -117,6 +132,39 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
     } on Object {
       _mostrarError('Ha ocurrido un error. Inténtalo de nuevo.');
     }
+  }
+
+  /// Avisa de que cancelar ahora la clase [clase] no devuelve la clase al bono
+  /// y devuelve `true` si el Usuario confirma la cancelación.
+  Future<bool?> _confirmarCancelacionSinDevolucion(Clase clase) {
+    final h = clase.horario.hour.toString().padLeft(2, '0');
+    final m = clase.horario.minute.toString().padLeft(2, '0');
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.warning_amber_rounded),
+        title: const Text('Vas a perder la clase'),
+        content: Text(
+          'Faltan menos de $kCancelacionHoras horas para la clase de las '
+          '$h:$m. Si cancelas ahora, la plaza se libera pero la clase no se '
+          'devuelve a tu bono.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Mantener reserva'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            child: const Text('Cancelar igualmente'),
+          ),
+        ],
+      ),
+    );
   }
 
   // --- Gestión del superadministrador (Req 8.1, 8.2) --------------------------

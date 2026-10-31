@@ -71,12 +71,19 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/icon/app_icon.png"
+  # iOS no admite transparencia: usa una versión a sangre (el cuadrado azul
+  # recortado, sin margen transparente) para que no salga un marco blanco.
+  image_path_ios: "assets/icon/app_icon_ios.png"
   # Fondo azul del logo para el icono adaptativo de Android, de modo que si el
   # sistema aplica una máscara circular el relleno coincide con el del logo.
   adaptive_icon_background: "#0A2A66"
   adaptive_icon_foreground: "assets/icon/app_icon.png"
+  # Reducción del logo dentro del icono adaptativo (por defecto 16 %). Con 6 %
+  # el cuadrado azul llena la máscara y "OLYMPUS" cabe en la máscara circular.
+  adaptive_icon_foreground_inset: 6
   # Elimina el canal alfa en iOS (requisito de la App Store).
   remove_alpha_ios: true
+  background_color_ios: "#0A2A66"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
