@@ -18,6 +18,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:olympus/core/router/router.dart';
 import 'package:olympus/features/auth/presentation/screens/screens.dart';
@@ -46,6 +47,10 @@ class _CargandoDiaReservasNotifier extends DiaReservasNotifier {
 }
 
 void main() {
+  // El calendario usa el locale es_ES; en la app lo inicializa main(), pero las
+  // pruebas montan los widgets directamente y deben cargarlo por su cuenta.
+  setUpAll(() => initializeDateFormatting('es_ES'));
+
   testWidgets(
     'sin sesión la guarda muestra la rama pública (inicio de sesión)',
     (WidgetTester tester) async {

@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 import 'core/config/config.dart';
@@ -18,6 +19,9 @@ Future<void> main() async {
   // Fija la zona horaria del gimnasio (Europe/Madrid) para que la hora de las
   // clases sea siempre la de España, independiente del dispositivo.
   initGymTimezone();
+  // Carga los símbolos de formato de fecha en español de España para que el
+  // calendario muestre meses y días en español (semana de lunes a domingo).
+  await initializeDateFormatting('es_ES');
   await initSupabase();
   // Observa el evento de recuperación de contraseña cuanto antes: el deep link
   // del correo puede procesarse antes de montar el AppRouter, así no se pierde.

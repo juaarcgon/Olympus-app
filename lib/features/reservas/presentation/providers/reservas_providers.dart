@@ -22,6 +22,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/gym_timezone.dart';
+import '../../../bono/presentation/providers/providers.dart';
+import '../../../profile/presentation/providers/profile_providers.dart';
 import '../../data/repositories/entrenamiento_repository_impl.dart';
 import '../../data/repositories/reservas_repository_impl.dart';
 import '../../domain/entities/clase.dart';
@@ -147,6 +149,10 @@ class DiaReservasNotifier extends AsyncNotifier<DiaReservasView> {
     final repo = ref.read(reservasRepositoryProvider);
     final resultado = await repo.reservar(claseId);
     await refrescar();
+    // El saldo del bono cambia al confirmar una reserva (−1 clase). Invalida
+    // las fuentes del saldo para que la UI lo refleje al instante, sin que el
+    // Usuario tenga que salir y volver a entrar (Req 4.1).
+    _invalidarSaldo();
     return resultado;
   }
 
@@ -156,6 +162,16 @@ class DiaReservasNotifier extends AsyncNotifier<DiaReservasView> {
     final repo = ref.read(reservasRepositoryProvider);
     await repo.cancelar(claseId);
     await refrescar();
+    // Al cancelar puede reembolsarse una clase (+1 si la antelación es >= 2h).
+    // Invalida las fuentes del saldo para reflejar el nuevo valor al instante.
+    _invalidarSaldo();
+  }
+
+  /// Invalida las fuentes del Saldo_De_Clases del Usuario para que la UI vuelva
+  /// a leer el valor actualizado del backend tras una reserva o cancelación.
+  void _invalidarSaldo() {
+    ref.invalidate(saldoBonoProvider);
+    ref.invalidate(profileNotifierProvider);
   }
 
   // --- Gestión del superadministrador (Req 8.1, 8.2) --------------------------

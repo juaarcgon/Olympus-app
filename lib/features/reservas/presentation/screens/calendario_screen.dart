@@ -34,6 +34,7 @@ import '../../../../core/config/constants.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/utils/gym_timezone.dart';
 import '../../../../shared/widgets/widgets.dart';
+import '../../../bono/presentation/providers/providers.dart';
 import '../../../profile/presentation/providers/profile_providers.dart';
 import '../../domain/entities/apuntado.dart';
 import '../../domain/entities/clase.dart';
@@ -271,7 +272,10 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
     final planActual = estadoDia.asData?.value.plan;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendario')),
+      appBar: AppBar(
+        title: const Text('Calendario'),
+        actions: const [_IndicadorSaldoBono()],
+      ),
       // Controles de GESTIÓN del superadministrador (Req 8.1, 8.2). El Usuario
       // normal no ve ningún botón de acción flotante.
       floatingActionButton: esSuperadmin
@@ -320,6 +324,34 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
   }
 }
 
+/// Indicador del saldo de clases del bono en la barra superior.
+///
+/// Observa [saldoBonoProvider] y muestra cuántas clases le quedan al Usuario.
+/// Como el notifier de reservas invalida ese provider tras cada reserva o
+/// cancelación, el número se actualiza al instante sin salir de la pantalla
+/// (Req 4.1). Mientras carga o si falla, no ocupa espacio visible.
+class _IndicadorSaldoBono extends ConsumerWidget {
+  const _IndicadorSaldoBono();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final saldo = ref.watch(saldoBonoProvider);
+    return saldo.maybeWhen(
+      data: (clases) => Padding(
+        padding: const EdgeInsets.only(right: 12),
+        child: Center(
+          child: Chip(
+            avatar: const Icon(Icons.confirmation_number_outlined, size: 18),
+            label: Text('$clases'),
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      ),
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
 /// Calendario mensual para elegir el día (table_calendar).
 class _Calendario extends StatelessWidget {
   const _Calendario({
@@ -342,6 +374,10 @@ class _Calendario extends StatelessWidget {
       firstDay: firstDay,
       lastDay: lastDay,
       focusedDay: focusedDay,
+      // Formato europeo de España: semana de lunes a domingo y textos
+      // (meses y días) en español.
+      locale: 'es_ES',
+      startingDayOfWeek: StartingDayOfWeek.monday,
       availableGestures: AvailableGestures.horizontalSwipe,
       headerStyle: const HeaderStyle(formatButtonVisible: false),
       selectedDayPredicate: (day) => isSameDay(day, diaSeleccionado),
@@ -598,9 +634,19 @@ class _AccionReserva extends StatelessWidget {
       );
     }
 
-    // Sin reserva: Reservar. Si el aforo está completo, el botón sigue activo
-    // porque la reserva pasa a lista de espera (Req 8.5); solo se deshabilita
-    // mientras se recarga el estado.
+    // Sin reserva pero la franja ya empezó o está en curso: no es reservable.
+    // No se puede reservar una clase cuya hora ya ha llegado o pasado (p. ej.
+    // a las 18:00 no se puede reservar la franja de las 18:00 ni anteriores).
+    if (franja.yaEmpezada) {
+      return const Align(
+        alignment: Alignment.centerRight,
+        child: Text('Reserva no disponible'),
+      );
+    }
+
+    // Sin reserva y la franja aún es futura: Reservar. Si el aforo está
+    // completo, el botón sigue activo porque la reserva pasa a lista de espera
+    // (Req 8.5); solo se deshabilita mientras se recarga el estado.
     final enEspera = franja.aforoCompleto;
     return Align(
       alignment: Alignment.centerRight,

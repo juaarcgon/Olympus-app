@@ -31,13 +31,19 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Localización oficial de Flutter (textos de widgets Material/Cupertino en
+  # español) y datos de formato de fecha para es_ES (calendario europeo).
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   supabase_flutter: ^2.18.0
   flutter_riverpod: ^3.4.3
   image_picker: ^1.2.3
-  table_calendar: ^3.3.0
+  table_calendar: 3.2.1
   timezone: ^0.10.0
 
 dev_dependencies:
@@ -51,6 +57,26 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   glados: ^1.1.7
+  # Genera los iconos de launcher de Android/iOS a partir de un único PNG
+  # (assets/icon/app_icon.png). Ejecutar: dart run flutter_launcher_icons
+  flutter_launcher_icons: ^0.14.4
+
+# Configuración del generador de iconos de launcher.
+#
+# Coloca tu logo como un único PNG cuadrado de 1024x1024 px en
+# assets/icon/app_icon.png y ejecuta `dart run flutter_launcher_icons`.
+# La herramienta genera todos los tamaños de Android (mipmap-*) e iOS
+# (AppIcon.appiconset) automáticamente.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  # Fondo azul del logo para el icono adaptativo de Android, de modo que si el
+  # sistema aplica una máscara circular el relleno coincide con el del logo.
+  adaptive_icon_background: "#0A2A66"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
+  # Elimina el canal alfa en iOS (requisito de la App Store).
+  remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

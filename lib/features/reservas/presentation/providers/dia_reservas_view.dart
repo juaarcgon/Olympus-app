@@ -55,6 +55,20 @@ class FranjaReserva {
   /// Indica si el aforo está completo (no quedan plazas confirmadas libres).
   bool get aforoCompleto => confirmadas >= clase.aforo;
 
+  /// Indica si la franja ya ha empezado o está en curso respecto al instante
+  /// actual (no se puede reservar: la hora de inicio no es futura).
+  ///
+  /// Se compara en UTC para evitar desfases de zona horaria: `clase.horario`
+  /// se persiste en UTC y `DateTime.now()` se normaliza con `toUtc()`. Si la
+  /// hora de inicio es anterior o igual a ahora, la franja no es reservable
+  /// (p. ej. a las 18:00 no se puede reservar la franja de las 18:00 ni una
+  /// anterior).
+  bool get yaEmpezada => !clase.horario.toUtc().isAfter(DateTime.now().toUtc());
+
+  /// Indica si el Usuario puede reservar esta franja: sin reserva previa y la
+  /// hora de inicio aún es futura.
+  bool get reservable => sinReserva && !yaEmpezada;
+
   /// Indica si el Usuario tiene una reserva confirmada en esta franja.
   bool get tengoConfirmada => miReserva?.esConfirmada ?? false;
 
