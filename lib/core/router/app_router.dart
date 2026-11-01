@@ -25,9 +25,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/admin/presentation/providers/admin_providers.dart';
 import '../../features/admin/presentation/screens/screens.dart';
 import '../../features/auth/presentation/screens/screens.dart';
+import '../../features/bono/presentation/providers/providers.dart';
 import '../../features/profile/domain/entities/profile.dart';
 import '../../features/profile/presentation/providers/profile_providers.dart';
 import '../../features/profile/presentation/screens/screens.dart';
+import '../../features/reservas/presentation/providers/providers.dart';
 import '../../features/reservas/presentation/screens/screens.dart';
 import 'password_recovery_state.dart';
 
@@ -69,14 +71,18 @@ class _AppRouterState extends ConsumerState<AppRouter> {
       if (!mounted) return;
 
       // Si cambia el usuario de la sesión (login de otra cuenta, logout o un
-      // nuevo registro con sesión), se invalida el estado de usuario cacheado
-      // para que el perfil y el panel de administración se recarguen desde
-      // cero y no se muestren datos del usuario anterior.
+      // nuevo registro con sesión), se invalida TODO el estado cacheado que
+      // depende del usuario para que se recargue desde cero y no se muestren
+      // datos del usuario anterior: perfil, administración, calendario (con
+      // "mi reserva" en cada franja) y saldo del bono.
       final nuevoUsuario = state.session?.user.id;
       if (nuevoUsuario != _usuarioAnterior) {
         _usuarioAnterior = nuevoUsuario;
         ref.invalidate(profileNotifierProvider);
         ref.invalidate(adminNotifierProvider);
+        ref.invalidate(diaReservasProvider);
+        ref.invalidate(diaSeleccionadoProvider);
+        ref.invalidate(saldoBonoProvider);
       }
 
       setState(() => _session = state.session);

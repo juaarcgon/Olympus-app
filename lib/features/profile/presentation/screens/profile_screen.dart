@@ -21,6 +21,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../core/notifications/push_notifications.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../auth/presentation/screens/screens.dart';
@@ -307,6 +308,8 @@ class _FormularioPerfil extends StatelessWidget {
               icon: const Icon(Icons.lock_reset_outlined),
               label: const Text('Cambiar contraseña'),
             ),
+            const SizedBox(height: 16),
+            const _EstadoNotificaciones(),
             const SizedBox(height: 12),
             TextButton.icon(
               onPressed: () => PrivacidadScreen.abrir(context),
@@ -345,6 +348,131 @@ class _AvatarPerfil extends StatelessWidget {
       radius: radio,
       backgroundImage: imagen,
       child: imagen == null ? const Icon(Icons.person, size: radio) : null,
+    );
+  }
+}
+
+/// Estado de las notificaciones push en este móvil, con botón para activarlas.
+///
+/// Sirve al Usuario para saber si recibirá el aviso de "ya tienes plaza" y,
+/// si no, por qué. El detalle técnico se puede desplegar para soporte.
+class _EstadoNotificaciones extends StatefulWidget {
+  const _EstadoNotificaciones();
+
+  @override
+  State<_EstadoNotificaciones> createState() => _EstadoNotificacionesState();
+}
+
+class _EstadoNotificacionesState extends State<_EstadoNotificaciones> {
+  late Future<DiagnosticoPush> _diagnostico = PushNotifications.diagnostico();
+  bool _trabajando = false;
+
+  Future<void> _activar() async {
+    setState(() => _trabajando = true);
+    await PushNotifications.pedirPermiso();
+    await PushNotifications.registrarDispositivo();
+    if (!mounted) return;
+    setState(() {
+      _trabajando = false;
+      _diagnostico = PushNotifications.diagnostico();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<DiagnosticoPush>(
+      future: _diagnostico,
+      builder: (context, snapshot) {
+        final diag = snapshot.data;
+        if (diag == null) return const SizedBox.shrink();
+
+        final (
+          IconData icono,
+          String texto,
+          bool activable,
+        ) = switch (diag.estado) {
+          EstadoPush.activo => (
+            Icons.notifications_active_outlined,
+            'Activadas: te avisaremos si consigues plaza desde la lista de '
+                'espera.',
+            false,
+          ),
+          EstadoPush.sinPermiso => (
+            Icons.notifications_off_outlined,
+            'Sin permiso. Actívalas para saber cuándo consigues plaza.',
+            true,
+          ),
+          EstadoPush.pendienteRegistro => (
+            Icons.sync_problem_outlined,
+            'Permiso concedido, pero el móvil aún no se ha registrado.',
+            true,
+          ),
+          EstadoPush.sinConfiguracion => (
+            Icons.error_outline,
+            'No disponibles en esta versión de la app.',
+            false,
+          ),
+          EstadoPush.noSoportado => (
+            Icons.notifications_off_outlined,
+            'No disponibles en este dispositivo.',
+            false,
+          ),
+        };
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icono),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Notificaciones',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(texto),
+                if (activable)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _trabajando ? null : _activar,
+                      child: Text(
+                        diag.estado == EstadoPush.sinPermiso
+                            ? 'Activar'
+                            : 'Reintentar',
+                      ),
+                    ),
+                  ),
+                if (diag.detalle != null)
+                  Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: Text(
+                        'Detalle técnico',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      children: [
+                        SelectableText(
+                          diag.detalle!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

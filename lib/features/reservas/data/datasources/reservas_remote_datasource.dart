@@ -158,18 +158,22 @@ class ReservasRemoteDataSource {
   /// Lee las reservas propias del Usuario de la sesión para las Clases
   /// indicadas en [claseIds].
   ///
-  /// La RLS de `reservas` (migración 0003) garantiza que solo se devuelven las
-  /// filas del propio Usuario, por lo que basta con filtrar por `clase_id`.
-  /// Permite a la pantalla saber el estado de la reserva del Usuario en cada
-  /// franja (confirmada / en espera / sin reserva). Si [claseIds] está vacío,
-  /// devuelve una lista vacía sin consultar.
+  /// Filtra EXPLÍCITAMENTE por `user_id` del Usuario de la sesión. No basta con
+  /// la RLS: desde la migración 0011 el superadministrador puede leer las
+  /// reservas de todos, y sin este filtro la reserva de otro socio se mostraba
+  /// como propia (con el botón "Cancelar"). Permite a la pantalla saber el
+  /// estado de la reserva del Usuario en cada franja (confirmada / en espera /
+  /// sin reserva). Si [claseIds] está vacío o no hay sesión, devuelve una lista
+  /// vacía sin consultar.
   Future<List<Map<String, dynamic>>> fetchMisReservas(
     List<String> claseIds,
   ) async {
-    if (claseIds.isEmpty) return <Map<String, dynamic>>[];
+    final userId = _client.auth.currentUser?.id;
+    if (claseIds.isEmpty || userId == null) return <Map<String, dynamic>>[];
     final rows = await _client
         .from(kReservasTable)
         .select()
+        .eq('user_id', userId)
         .inFilter('clase_id', claseIds);
     return List<Map<String, dynamic>>.from(rows);
   }

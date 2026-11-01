@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
 
   const { data: dispositivos, error: errorDispositivos } = await supabase
     .from("dispositivos_push")
-    .select("fid")
+    .select("token")
     .eq("user_id", userId);
   if (errorDispositivos) {
     console.error("Error leyendo dispositivos:", errorDispositivos.message);
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
   const url = `https://fcm.googleapis.com/v1/projects/${CUENTA.project_id}/messages:send`;
   let enviados = 0;
 
-  for (const { fid } of dispositivos) {
+  for (const { token } of dispositivos) {
     const respuesta = await fetch(url, {
       method: "POST",
       headers: {
@@ -148,8 +148,8 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         message: {
-          // Destino: Firebase Installation ID (sustituye al antiguo token).
-          fid,
+          // Destino: token de registro de FCM (migración 0016).
+          token,
           notification: { title: titulo, body: cuerpo },
           data: { tipo: "plaza_conseguida", clase_id: claseId },
           android: {
@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
     const detalle = await respuesta.text();
     // Registro caducado o de una app desinstalada: se elimina para no reintentar.
     if (respuesta.status === 404 || detalle.includes("UNREGISTERED")) {
-      await supabase.from("dispositivos_push").delete().eq("fid", fid);
+      await supabase.from("dispositivos_push").delete().eq("token", token);
     } else {
       console.error(`FCM ${respuesta.status}: ${detalle}`);
     }
