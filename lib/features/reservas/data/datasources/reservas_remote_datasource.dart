@@ -32,6 +32,11 @@ const String kCancelarRpc = 'cancelar_reserva';
 /// exponer identidades (migración 0008).
 const String kOcupacionRpc = 'ocupacion_clase';
 
+/// Nombre de la RPC de solo lectura que devuelve la lista de apuntados de una
+/// Clase (nombre, apellidos, estado y posición) a cualquier Usuario autenticado
+/// (migración 0014).
+const String kApuntadosRpc = 'apuntados_clase';
+
 /// Fuente de datos remota que habla con Supabase (Postgres + RPC).
 class ReservasRemoteDataSource {
   /// Crea la fuente de datos.
@@ -169,21 +174,20 @@ class ReservasRemoteDataSource {
     return List<Map<String, dynamic>>.from(rows);
   }
 
-  /// Lee las reservas de la Clase [claseId] con los datos del Usuario apuntado
-  /// (join con `profiles`), ordenadas por `status` y `posicion`.
+  /// Lee la lista de apuntados de la Clase [claseId] mediante la RPC de solo
+  /// lectura `apuntados_clase` (migración 0014).
   ///
-  /// SOLO debe invocarse cuando el Usuario de la sesión es superadministrador:
-  /// la RLS de `reservas` restringe esta lectura a sus propias filas para un
-  /// Usuario normal, por lo que la lista completa de apuntados únicamente es
-  /// visible para el superadministrador. Cada fila incluye el `status`, la
-  /// `posicion` y los campos `nombre`/`apellidos` del perfil anidado.
+  /// La pueden invocar todos los Usuarios autenticados. La función es
+  /// `SECURITY DEFINER` y solo devuelve, por fila, `user_id`, `nombre`,
+  /// `apellidos`, `status` y `posicion`, ordenadas con los confirmados primero
+  /// y la lista de espera por posición; nunca expone otros datos del perfil.
   Future<List<Map<String, dynamic>>> fetchApuntados(String claseId) async {
-    final rows = await _client
-        .from(kReservasTable)
-        .select('id, user_id, status, posicion, profiles(nombre, apellidos)')
-        .eq('clase_id', claseId)
-        .order('status', ascending: true)
-        .order('posicion', ascending: true);
-    return List<Map<String, dynamic>>.from(rows);
+    final rows = await _client.rpc(
+      kApuntadosRpc,
+      params: <String, dynamic>{'p_clase_id': claseId},
+    );
+    return List<Map<String, dynamic>>.from(
+      (rows as List).map((r) => Map<String, dynamic>.from(r as Map)),
+    );
   }
 }

@@ -1,10 +1,10 @@
 // Entidad de dominio Apuntado para la app Olympus.
 //
 // Representa a un Usuario apuntado a una Clase (confirmado o en lista de espera)
-// con su nombre y apellidos, destinado a la vista del superadministrador. La
-// lista nominal de apuntados solo es visible para el superadministrador: la RLS
-// de `reservas` limita la lectura de las filas ajenas al resto de Usuarios
-// (Req 8.2). Modelo de dominio puro e inmutable.
+// con su nombre y apellidos. Todos los Usuarios autenticados pueden ver la
+// lista de apuntados de una Clase a través de la RPC `apuntados_clase`
+// (migración 0014), que solo expone nombre, apellidos, estado y posición.
+// Modelo de dominio puro e inmutable.
 
 import 'reserva.dart';
 

@@ -2,3 +2,4 @@
 // Componentes UI reutilizables compartidos entre features.
 
 export 'app_notifications.dart';
+export 'privacidad_screen.dart';

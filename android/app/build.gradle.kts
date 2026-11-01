@@ -7,6 +7,14 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Firebase Cloud Messaging (notificaciones push). La configuración del
+// proyecto de Firebase vive en android/app/google-services.json, que se
+// descarga de la consola de Firebase y NO se versiona. Si aún no existe, el
+// plugin no se aplica y la app compila igual, solo que sin notificaciones push.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 // Carga la configuración de firma de release desde android/key.properties.
 // Este archivo NO se versiona (está en .gitignore) y contiene las rutas y
 // contraseñas del keystore propio. Si no existe (p. ej. en una máquina de

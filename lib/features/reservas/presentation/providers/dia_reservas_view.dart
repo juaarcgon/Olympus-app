@@ -66,6 +66,12 @@ class FranjaReserva {
   /// anterior).
   bool get yaEmpezada => !clase.horario.toUtc().isAfter(DateTime.now().toUtc());
 
+  /// Indica si la franja ya ha terminado (inicio + [kDuracionFranjaHoras]).
+  bool get yaTerminada => !clase.horario
+      .toUtc()
+      .add(const Duration(hours: kDuracionFranjaHoras))
+      .isAfter(DateTime.now().toUtc());
+
   /// Indica si el Usuario puede reservar esta franja: sin reserva previa y la
   /// hora de inicio aún es futura.
   bool get reservable => sinReserva && !yaEmpezada;

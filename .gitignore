@@ -50,6 +50,18 @@ app.*.map.json
 *.env
 dart_defines.json
 
+# Configuración del proyecto de Firebase (notificaciones push). Se descarga de
+# la consola de Firebase en cada máquina; no se versiona.
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
+
+# Clave de cuenta de servicio de Firebase: es SECRETA y solo va como secreto
+# de la Edge Function en Supabase. Nunca en el repositorio ni en la app.
+*firebase-adminsdk*.json
+service-account*.json
+supabase/functions/.env
+
 # Android release signing (keystore + credenciales). Nunca versionar.
 android/key.properties
 *.jks

@@ -11,8 +11,10 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 import 'core/config/config.dart';
+import 'core/notifications/push_notifications.dart';
 import 'core/router/password_recovery_state.dart';
 import 'core/utils/gym_timezone.dart';
+import 'shared/widgets/widgets.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,5 +28,16 @@ Future<void> main() async {
   // Observa el evento de recuperación de contraseña cuanto antes: el deep link
   // del correo puede procesarse antes de montar el AppRouter, así no se pierde.
   observarRecuperacionPassword();
+  // Notificaciones push (FCM). Si falta la configuración de Firebase queda
+  // desactivado sin afectar al resto de la app.
+  PushNotifications.onAvisoEnPrimerPlano = (titulo, cuerpo) {
+    final overlay = rootNavigatorKey.currentState?.overlay;
+    if (overlay == null) return;
+    AppNotifications.exitoEnOverlay(
+      overlay,
+      cuerpo.isEmpty ? titulo : '$titulo $cuerpo',
+    );
+  };
+  await PushNotifications.iniciar();
   runApp(const ProviderScope(child: OlympusApp()));
 }

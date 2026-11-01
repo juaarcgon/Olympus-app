@@ -93,10 +93,9 @@ abstract class ReservasRepository {
   /// Devuelve la lista nominal de Usuarios apuntados a la Clase [claseId],
   /// ordenada por estado y posición (Req 8.2).
   ///
-  /// SOLO debe usarse para el superadministrador: la RLS de `reservas`
-  /// restringe esta lectura a sus propias filas para un Usuario normal, por lo
-  /// que la lista completa de apuntados únicamente es visible para el
-  /// superadministrador.
+  /// Disponible para todos los Usuarios autenticados: se apoya en la RPC
+  /// `apuntados_clase` (migración 0014), que solo devuelve nombre, apellidos,
+  /// estado y posición de cada apuntado.
   Future<List<Apuntado>> getApuntados(String claseId);
 
   /// Devuelve las reservas propias del Usuario de la sesión para las Clases

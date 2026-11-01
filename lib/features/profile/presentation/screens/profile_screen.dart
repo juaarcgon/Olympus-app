@@ -307,6 +307,12 @@ class _FormularioPerfil extends StatelessWidget {
               icon: const Icon(Icons.lock_reset_outlined),
               label: const Text('Cambiar contraseña'),
             ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: () => PrivacidadScreen.abrir(context),
+              icon: const Icon(Icons.privacy_tip_outlined),
+              label: const Text('Privacidad y protección de datos'),
+            ),
           ],
         ),
       ),

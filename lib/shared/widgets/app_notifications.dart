@@ -38,6 +38,15 @@ class AppNotifications {
     _mostrar(context, mensaje, _TipoNotificacion.error);
   }
 
+  /// Muestra una notificación de ÉXITO directamente sobre [overlay].
+  ///
+  /// Para avisos que no nacen de una pantalla concreta (p. ej. una
+  /// notificación push recibida con la app abierta), donde no hay un
+  /// `BuildContext` a mano.
+  static void exitoEnOverlay(OverlayState overlay, String mensaje) {
+    _NotificationHost.of(overlay).add(mensaje, _TipoNotificacion.exito);
+  }
+
   static void _mostrar(
     BuildContext context,
     String mensaje,

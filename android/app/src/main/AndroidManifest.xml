@@ -3,6 +3,9 @@
          (Auth, Postgres, Storage). En debug/profile se declara en sus propios
          manifests; en release debe estar aquí o la app no tiene red. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+: permiso para mostrar notificaciones push. La app lo pide
+         al entrar en una lista de espera, no al abrirse. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:label="olympus"
@@ -48,6 +51,17 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Notificaciones push (FCM): canal "reservas" (lo crea MainActivity),
+             icono monocromo de la barra de estado y color de acento. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="reservas" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_olympus" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notificacion_color" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

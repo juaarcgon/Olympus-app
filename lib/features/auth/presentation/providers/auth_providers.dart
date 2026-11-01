@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthState;
 
+import '../../../../core/notifications/push_notifications.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -138,6 +139,9 @@ class AuthNotifier extends AsyncNotifier<AppUser?> {
     final repository = ref.read(authRepositoryProvider);
     state = const AsyncValue<AppUser?>.loading();
     state = await AsyncValue.guard(() async {
+      // Desvincula este móvil de la cuenta antes de cerrar la sesión (la RPC
+      // necesita la sesión), para que no reciba avisos de esta cuenta.
+      await PushNotifications.desregistrarDispositivo();
       await repository.signOut();
       return null;
     });

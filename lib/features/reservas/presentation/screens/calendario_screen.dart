@@ -9,9 +9,10 @@
 //     (HH:mm), monitor, aforo "confirmadas/aforo", el estado de la reserva del
 //     Usuario (confirmada / en espera posición N / sin reserva) y un botón
 //     Reservar o Cancelar según corresponda (Req 8.3, 8.5, 8.7).
-//   - Si el Usuario es superadministrador, cada franja es expandible y muestra
-//     la lista nominal de los apuntados (nombre apellidos + estado). El Usuario
-//     normal solo ve el número de ocupación, nunca los nombres (Req 8.2).
+//   - Cada franja es expandible y muestra la lista de apuntados (nombre
+//     apellidos + plaza confirmada / posición en lista de espera) a todos los
+//     Usuarios, mediante la RPC `apuntados_clase` (migración 0014).
+//   - Una vez empezada la franja no se puede reservar ni cancelar.
 //
 // Además, SOLO el superadministrador dispone de controles de GESTIÓN (Req 8.1,
 // 8.2): un botón flotante para "Añadir franja", "Generar franjas 17–20h" y
@@ -26,11 +27,14 @@
 // nunca se muestran trazas técnicas. Al reservar/cancelar con éxito se muestra
 // una notificación verde y se refresca la vista.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../core/config/constants.dart';
+import '../../../../core/notifications/push_notifications.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/utils/gym_timezone.dart';
 import '../../../../shared/widgets/widgets.dart';
@@ -59,12 +63,31 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
   late final DateTime _firstDay;
   late final DateTime _lastDay;
 
+  /// Suscripción a las notificaciones push recibidas o pulsadas.
+  StreamSubscription<Map<String, dynamic>>? _avisosPush;
+
   @override
   void initState() {
     super.initState();
     final hoy = DateTime.now();
     _firstDay = DateTime(hoy.year - 1, hoy.month, hoy.day);
     _lastDay = DateTime(hoy.year + 1, hoy.month, hoy.day);
+
+    // Al conseguir plaza desde la lista de espera, la reserva y el saldo han
+    // cambiado en el servidor: se refresca la vista sin que el Usuario tenga
+    // que hacer nada.
+    _avisosPush = PushNotifications.avisos.listen((datos) {
+      if (!mounted || datos['tipo'] != kAvisoPlazaConseguida) return;
+      ref.read(diaReservasProvider.notifier).refrescar();
+      ref.invalidate(saldoBonoProvider);
+      ref.invalidate(profileNotifierProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    _avisosPush?.cancel();
+    super.dispose();
   }
 
   /// Traduce un error a un mensaje legible en español.
@@ -95,9 +118,14 @@ class _CalendarioScreenState extends ConsumerState<CalendarioScreen> {
       if (resultado.esConfirmada) {
         _mostrarExito('Reserva confirmada');
       } else {
+        // Es el momento en que el aviso tiene sentido: se pide aquí el permiso
+        // de notificaciones, no al abrir la app.
+        final avisaremos = await PushNotifications.pedirPermiso();
+        if (!mounted) return;
         _mostrarExito(
           'Aforo completo: estás en lista de espera (posición '
-          '${resultado.posicion})',
+          '${resultado.posicion}).'
+          '${avisaremos ? ' Te avisaremos si queda una plaza libre.' : ''}',
         );
       }
     } on Failure catch (failure) {
@@ -566,9 +594,8 @@ class _PlanDelDia extends StatelessWidget {
 
 /// Tarjeta de una franja horaria (Clase) con la acción de reserva/cancelación.
 ///
-/// Para el superadministrador la tarjeta es expandible y muestra la lista
-/// nominal de apuntados; para el Usuario normal solo muestra el número de
-/// ocupación (Req 8.2).
+/// La tarjeta es expandible para todos los Usuarios y muestra la lista de
+/// apuntados; las acciones de gestión solo aparecen al superadministrador.
 class _FranjaCard extends ConsumerWidget {
   const _FranjaCard({
     required this.franja,
@@ -641,14 +668,13 @@ class _FranjaCard extends ConsumerWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: esSuperadmin
-            ? _FranjaExpandibleAdmin(
-                clase: clase,
-                cabecera: cabecera,
-                onEditarFranja: onEditarFranja,
-                onEliminarFranja: onEliminarFranja,
-              )
-            : cabecera,
+        child: _FranjaExpandible(
+          clase: clase,
+          cabecera: cabecera,
+          esSuperadmin: esSuperadmin,
+          onEditarFranja: onEditarFranja,
+          onEliminarFranja: onEliminarFranja,
+        ),
       ),
     );
   }
@@ -670,7 +696,23 @@ class _AccionReserva extends StatelessWidget {
   Widget build(BuildContext context) {
     final claseId = franja.clase.id;
 
-    // Con reserva (confirmada o en espera): ofrecer Cancelar (Req 8.7, 8.11).
+    // La franja ya empezó o terminó: no se puede reservar NI cancelar (mismo
+    // criterio que las RPC `reservar_clase` y `cancelar_reserva`, migraciones
+    // 0012 y 0013). Solo se informa del estado.
+    if (franja.yaEmpezada) {
+      final String texto;
+      if (franja.sinReserva) {
+        texto = 'Reserva no disponible';
+      } else if (franja.yaTerminada) {
+        texto = 'Clase finalizada';
+      } else {
+        texto = 'Clase en curso';
+      }
+      return Align(alignment: Alignment.centerRight, child: Text(texto));
+    }
+
+    // Con reserva (confirmada o en espera) y la clase aún no ha empezado:
+    // ofrecer Cancelar (Req 8.7, 8.11).
     if (!franja.sinReserva) {
       return Align(
         alignment: Alignment.centerRight,
@@ -679,16 +721,6 @@ class _AccionReserva extends StatelessWidget {
           icon: const Icon(Icons.cancel_outlined),
           label: const Text('Cancelar'),
         ),
-      );
-    }
-
-    // Sin reserva pero la franja ya empezó o está en curso: no es reservable.
-    // No se puede reservar una clase cuya hora ya ha llegado o pasado (p. ej.
-    // a las 18:00 no se puede reservar la franja de las 18:00 ni anteriores).
-    if (franja.yaEmpezada) {
-      return const Align(
-        alignment: Alignment.centerRight,
-        child: Text('Reserva no disponible'),
       );
     }
 
@@ -707,18 +739,26 @@ class _AccionReserva extends StatelessWidget {
   }
 }
 
-/// Envoltura expandible para el superadministrador que carga, bajo demanda, la
-/// lista nominal de apuntados de la Clase (Req 8.2).
-class _FranjaExpandibleAdmin extends ConsumerWidget {
-  const _FranjaExpandibleAdmin({
+/// Envoltura expandible de una franja que carga, bajo demanda, la lista de
+/// apuntados de la Clase (confirmados y lista de espera).
+///
+/// La ven todos los Usuarios (RPC `apuntados_clase`, migración 0014). Las
+/// acciones de gestión (editar/eliminar la franja) solo se muestran al
+/// superadministrador (Req 8.1). El propio Usuario aparece marcado con "(tú)".
+class _FranjaExpandible extends ConsumerWidget {
+  const _FranjaExpandible({
     required this.clase,
     required this.cabecera,
+    required this.esSuperadmin,
     required this.onEditarFranja,
     required this.onEliminarFranja,
   });
 
   final Clase clase;
   final Widget cabecera;
+
+  /// Si es `true`, se muestran las acciones de gestión de la franja.
+  final bool esSuperadmin;
 
   /// Abre la edición de esta franja (Req 8.1).
   final Future<void> Function(Clase clase) onEditarFranja;
@@ -728,6 +768,9 @@ class _FranjaExpandibleAdmin extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Id del Usuario de la sesión, para marcarlo como "(tú)" en la lista.
+    final miId = ref.watch(profileNotifierProvider).asData?.value.id;
+
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
       childrenPadding: const EdgeInsets.only(top: 8),
@@ -735,25 +778,50 @@ class _FranjaExpandibleAdmin extends ConsumerWidget {
       children: [
         // Acciones de gestión de la franja (editar/eliminar), solo visibles
         // para el superadministrador (Req 8.1).
+        if (esSuperadmin) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OverflowBar(
+              spacing: 8,
+              children: [
+                TextButton.icon(
+                  onPressed: () => onEditarFranja(clase),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Editar franja'),
+                ),
+                TextButton.icon(
+                  onPressed: () => onEliminarFranja(clase),
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Eliminar franja'),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+        ],
         Align(
           alignment: Alignment.centerLeft,
-          child: OverflowBar(
-            spacing: 8,
-            children: [
-              TextButton.icon(
-                onPressed: () => onEditarFranja(clase),
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Editar franja'),
-              ),
-              TextButton.icon(
-                onPressed: () => onEliminarFranja(clase),
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Eliminar franja'),
-              ),
-            ],
+          child: Text(
+            'Apuntados',
+            style: Theme.of(context).textTheme.titleSmall,
           ),
         ),
-        const Divider(),
+        // Aviso de privacidad: los socios saben que su nombre es visible.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
+            onPressed: () => PrivacidadScreen.abrir(context),
+            icon: const Icon(Icons.info_outline, size: 16),
+            label: const Text(
+              'Los socios ven el nombre de quien se apunta',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        ),
         FutureBuilder<List<Apuntado>>(
           future: ref.read(reservasRepositoryProvider).getApuntados(clase.id),
           builder: (context, snapshot) {
@@ -781,8 +849,9 @@ class _FranjaExpandibleAdmin extends ConsumerWidget {
               children: apuntados
                   .map((apuntado) {
                     final estado = apuntado.esConfirmado
-                        ? 'confirmada'
-                        : 'espera (posición ${apuntado.posicion})';
+                        ? 'Plaza confirmada'
+                        : 'Lista de espera (posición ${apuntado.posicion})';
+                    final soyYo = apuntado.userId == miId;
                     return ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
@@ -791,7 +860,14 @@ class _FranjaExpandibleAdmin extends ConsumerWidget {
                             ? Icons.check_circle_outline
                             : Icons.hourglass_empty,
                       ),
-                      title: Text(apuntado.nombreCompleto),
+                      title: Text(
+                        soyYo
+                            ? '${apuntado.nombreCompleto} (tú)'
+                            : apuntado.nombreCompleto,
+                        style: soyYo
+                            ? const TextStyle(fontWeight: FontWeight.bold)
+                            : null,
+                      ),
                       subtitle: Text(estado),
                     );
                   })

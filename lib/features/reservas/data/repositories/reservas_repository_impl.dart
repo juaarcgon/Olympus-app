@@ -134,6 +134,12 @@ class ReservasRepositoryImpl implements ReservasRepository {
     try {
       await _dataSource.cancelarReserva(claseId);
     } on PostgrestException catch (e) {
+      // Las reglas de negocio ('P0001', p. ej. "No se puede cancelar una clase
+      // que ya ha empezado") se muestran tal cual; antes cualquier error de la
+      // cancelación se presentaba como falta de autorización.
+      if (e.code == 'P0001' && e.message.trim().isNotEmpty) {
+        throw OperacionFallidaFailure(e.message.trim());
+      }
       throw _mapPostgrestException(e);
     }
   }
@@ -213,22 +219,17 @@ class ReservasRepositoryImpl implements ReservasRepository {
     );
   }
 
-  /// Mapea una fila cruda de `reservas` (con el perfil anidado) a [Apuntado]
-  /// (Req 8.2).
+  /// Mapea una fila de la RPC `apuntados_clase` a [Apuntado].
   ///
-  /// La fila incluye `status`, `posicion` y un objeto anidado `profiles` con el
-  /// `nombre` y los `apellidos` del Usuario apuntado.
+  /// La fila es plana: `user_id`, `nombre`, `apellidos`, `status` y
+  /// `posicion`.
   Apuntado _mapRowToApuntado(Map<String, dynamic> row) {
-    final perfil = row['profiles'];
-    final datosPerfil = perfil is Map
-        ? Map<String, dynamic>.from(perfil)
-        : const <String, dynamic>{};
     final posicionRaw = row['posicion'];
 
     return Apuntado(
       userId: row['user_id'] as String,
-      nombre: (datosPerfil['nombre'] as String?) ?? '',
-      apellidos: (datosPerfil['apellidos'] as String?) ?? '',
+      nombre: (row['nombre'] as String?) ?? '',
+      apellidos: (row['apellidos'] as String?) ?? '',
       status: ReservaStatus.desdeValor(row['status'] as String),
       posicion: posicionRaw is num ? posicionRaw.toInt() : null,
     );

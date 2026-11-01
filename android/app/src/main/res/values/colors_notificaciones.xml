@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Color de acento de las notificaciones push (azul del logo). Va en un
+     archivo propio porque colors.xml lo regenera flutter_launcher_icons. -->
+<resources>
+    <color name="notificacion_color">#0A2A66</color>
+</resources>

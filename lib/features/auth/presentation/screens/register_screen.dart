@@ -234,6 +234,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         )
                       : const Text('Crear cuenta'),
                 ),
+                const SizedBox(height: 12),
+                // Información de privacidad en el momento de recoger los datos
+                // (RGPD art. 13): visibilidad del nombre para otros socios.
+                Text(
+                  'Tu nombre y apellidos serán visibles para los demás socios '
+                  'en las clases a las que te apuntes.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                TextButton(
+                  onPressed: cargando
+                      ? null
+                      : () => PrivacidadScreen.abrir(context),
+                  child: const Text('Privacidad y protección de datos'),
+                ),
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: cargando
