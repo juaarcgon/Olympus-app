@@ -3,8 +3,9 @@
 // Reúne, como función pura en memoria (sin efectos secundarios, sin
 // dependencias de Supabase y completamente determinista), el espejo del
 // comportamiento del backend al crear la cuenta de un Usuario a partir de un
-// registro válido: el trigger `on_auth_user_created` (migración 0002) inserta
-// la fila en `public.profiles` con `estado = 'activo'` y `saldo_clases = 10`.
+// registro válido: el trigger `on_auth_user_created` (migración 0018) inserta
+// la fila en `public.profiles` con `estado = 'activo'` y `saldo_clases = 0`
+// (el bono empieza vacío hasta que el socio paga).
 //
 // Supabase (trigger + constraints de la tabla `profiles`) es quien materializa
 // realmente esta inicialización en el backend; este modelo la mirror-ea de
@@ -53,7 +54,7 @@ class RegistroUsuario {
 /// Devuelve el [Profile] inicial que el Sistema persiste tras un registro
 /// válido, con las invariantes de inicialización garantizadas:
 ///   - `estado == EstadoUsuario.activo` (Req 1.1),
-///   - `saldoClases == kBonoMax == 10` (Req 1.2),
+///   - `saldoClases == kBonoInicial == 0` (Req 1.2),
 ///   - `rol == RolUsuario.usuario` (rol estándar por defecto).
 ///
 /// Es una función pura y determinista: para los mismos datos de registro
@@ -66,8 +67,8 @@ Profile crearCuentaDesdeRegistro(RegistroUsuario registro) {
     nombre: registro.nombre,
     apellidos: registro.apellidos,
     email: registro.email,
-    // Inicialización del bono: un bono completo otorga 10 clases (Req 1.2).
-    saldoClases: kBonoMax,
+    // Inicialización del bono: empieza vacío hasta que el socio paga (Req 1.2).
+    saldoClases: kBonoInicial,
     // Estado inicial de toda cuenta recién creada (Req 1.1).
     estado: EstadoUsuario.activo,
     // Rol estándar por defecto; el superadmin se concede aparte (Req 5).

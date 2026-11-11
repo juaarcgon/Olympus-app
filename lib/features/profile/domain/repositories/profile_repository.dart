@@ -40,4 +40,13 @@ abstract class ProfileRepository {
     String? apellidos,
     XFile? foto,
   });
+
+  /// Elimina de forma permanente la cuenta del Usuario autenticado y cierra
+  /// su sesión (exigido por Google Play).
+  ///
+  /// Borra la foto de perfil, libera sus plazas en clases futuras (pasan al
+  /// siguiente de la lista de espera) y borra la cuenta de acceso con todos
+  /// sus datos. Lanza un [Failure] si no se puede completar; en ese caso la
+  /// cuenta sigue existiendo. Un superadministrador no puede eliminarse así.
+  Future<void> eliminarMiCuenta();
 }

@@ -17,6 +17,8 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/storage/avatar_storage.dart';
+
 /// Nombre del bucket de Supabase Storage para las fotos de perfil.
 const String kAvatarsBucket = 'avatars';
 
@@ -109,6 +111,26 @@ class ProfileRemoteDataSource {
         );
 
     return _client.storage.from(kAvatarsBucket).getPublicUrl(path);
+  }
+
+  /// Elimina de forma permanente la cuenta del Usuario autenticado.
+  ///
+  /// 1. Borra sus fotos de perfil de Storage (SQL no puede hacerlo).
+  /// 2. Llama a la RPC `eliminar_mi_cuenta` (migración 0017), que libera sus
+  ///    plazas futuras y borra la cuenta de acceso; en cascada se borran el
+  ///    perfil, las reservas y los móviles registrados.
+  /// 3. Cierra la sesión local. La cuenta ya no existe, así que un fallo del
+  ///    servidor al cerrar sesión se ignora.
+  ///
+  /// Si el paso 1 falla, no se borra nada más: la excepción se propaga.
+  Future<void> eliminarMiCuenta() async {
+    await borrarAvataresDe(_client, _currentUserId);
+    await _client.rpc('eliminar_mi_cuenta');
+    try {
+      await _client.auth.signOut();
+    } on Object {
+      // La sesión local ya se ha limpiado; el servidor no conoce la cuenta.
+    }
   }
 
   /// Normaliza una extensión de archivo asegurando el punto inicial.

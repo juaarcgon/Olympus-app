@@ -78,9 +78,31 @@ class _NotificationHost {
     return _hosts.putIfAbsent(overlay, () => _NotificationHost._(overlay));
   }
 
+  /// Mensajes que llegaron antes de que la pila estuviera construida.
+  final List<(String, _TipoNotificacion)> _pendientes =
+      <(String, _TipoNotificacion)>[];
+
   void add(String mensaje, _TipoNotificacion tipo) {
     _ensureInserted();
-    _stackKey.currentState?.push(mensaje, tipo);
+    final pila = _stackKey.currentState;
+    if (pila != null) {
+      pila.push(mensaje, tipo);
+      return;
+    }
+    // La primera vez la entrada se acaba de insertar y la pila no existe hasta
+    // el siguiente fotograma: sin esto, el primer aviso de la app se perdía.
+    _pendientes.add((mensaje, tipo));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _vaciarPendientes());
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  void _vaciarPendientes() {
+    final pila = _stackKey.currentState;
+    if (pila == null || _pendientes.isEmpty) return;
+    for (final (mensaje, tipo) in _pendientes) {
+      pila.push(mensaje, tipo);
+    }
+    _pendientes.clear();
   }
 
   void _ensureInserted() {

@@ -70,7 +70,11 @@ class CuentaSuspendidaFailure extends Failure {
 /// No quedan clases disponibles en el bono del usuario (Req 4.3, 8.4).
 class SinClasesFailure extends Failure {
   const SinClasesFailure([
-    super.mensaje = 'No quedan clases disponibles en tu bono',
+    // Las cuentas nuevas empiezan con el bono vacío (migración 0018): se le
+    // explica al socio cómo conseguir clases.
+    super.mensaje =
+        'No quedan clases disponibles en tu bono. Cuando pagues, el gimnasio '
+        'te lo recargará.',
   ]);
 }
 

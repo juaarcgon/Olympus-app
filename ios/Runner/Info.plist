@@ -24,8 +24,29 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- Enlace profundo io.olympus://reset-password del correo de recuperación
+	     de contraseña: abre la app y Supabase procesa el token. Debe coincidir
+	     con el esquema del AndroidManifest y con las Redirect URLs de Supabase. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.olympus.gym</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>io.olympus</string>
+			</array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Foto de perfil. La app solo elige de la galería, pero el plugin
+	     image_picker incluye código de cámara y la App Store exige ambos
+	     textos de uso. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Olympus necesita acceder a tus fotos para que puedas elegir tu foto de perfil.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Olympus puede usar la cámara para que te hagas tu foto de perfil.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

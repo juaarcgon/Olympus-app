@@ -98,11 +98,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // de enrutado quede visible. Con sesión activa, la guarda muestra la zona
       // autenticada; si quedó pendiente de confirmación, se vuelve al login y
       // se avisa al Usuario de que revise su correo.
+      // El bono empieza vacío (migración 0018): se avisa para que el socio no
+      // se extrañe al ver 0 clases.
       if (resultado == SignUpResult.confirmacionPendiente) {
         AppNotifications.exito(
           context,
           'Cuenta creada. Revisa tu correo para confirmarla antes de '
-          'iniciar sesión.',
+          'iniciar sesión. Tu bono empieza vacío: el gimnasio te lo cargará '
+          'cuando pagues.',
+        );
+      } else {
+        AppNotifications.exito(
+          context,
+          'Cuenta creada. Tu bono empieza vacío: el gimnasio te lo cargará '
+          'cuando pagues.',
         );
       }
       Navigator.of(context).pop();

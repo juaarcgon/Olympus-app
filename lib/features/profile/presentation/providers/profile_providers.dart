@@ -67,6 +67,14 @@ class ProfileNotifier extends AsyncNotifier<Profile> {
     );
   }
 
+  /// Elimina de forma permanente la cuenta del Usuario y cierra su sesión.
+  ///
+  /// No cambia el estado del perfil: al cerrarse la sesión, la guarda de
+  /// enrutado vuelve a la pantalla de inicio de sesión y descarta los datos.
+  /// Propaga el [Failure] si no se puede eliminar; la cuenta sigue intacta.
+  Future<void> eliminarMiCuenta() =>
+      ref.read(profileRepositoryProvider).eliminarMiCuenta();
+
   /// Vuelve a cargar el perfil propio desde el backend (Req 3.1).
   Future<void> refresh() async {
     state = const AsyncValue<Profile>.loading();

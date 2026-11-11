@@ -49,6 +49,10 @@ class _FakeProfileRepository implements ProfileRepository {
   Future<Profile> getMyProfile() async => _profile;
 
   @override
+  Future<void> eliminarMiCuenta() =>
+      throw UnimplementedError('No interviene en Property 8');
+
+  @override
   Future<Profile> updateMyProfile({
     String? nombre,
     String? apellidos,

@@ -16,6 +16,8 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/storage/avatar_storage.dart';
+
 /// Nombre de la tabla de perfiles en PostgreSQL.
 const String kProfilesTable = 'profiles';
 
@@ -60,9 +62,16 @@ class AdminRemoteDataSource {
     );
   }
 
-  /// Elimina el registro del Usuario objetivo vía RPC `eliminar_usuario`
-  /// (Req 6.4). La propia función rechaza la autoeliminación (Req 6.7).
+  /// Elimina por completo al Usuario objetivo (Req 6.4).
+  ///
+  /// Primero borra sus fotos de perfil de Storage (SQL no puede hacerlo; la
+  /// política `avatars_delete_superadmin` de la migración 0017 lo permite al
+  /// superadministrador). Después la RPC `eliminar_usuario` libera sus plazas
+  /// futuras y borra su cuenta de acceso con todos sus datos. La propia
+  /// función rechaza la autoeliminación (Req 6.7). Si el borrado de la foto
+  /// falla, no se llama a la RPC y la [StorageException] se propaga.
   Future<void> eliminarUsuario(String targetUserId) async {
+    await borrarAvataresDe(_client, targetUserId);
     await _client.rpc(
       'eliminar_usuario',
       params: {'target_user_id': targetUserId},

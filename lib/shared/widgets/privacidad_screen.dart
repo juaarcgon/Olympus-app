@@ -18,22 +18,23 @@ import 'package:flutter/material.dart';
 // --- Datos del responsable del tratamiento: COMPLETAR antes de publicar -----
 
 /// Nombre o razón social del gimnasio (responsable del tratamiento).
-const String kPrivacidadResponsable = '[Nombre o razón social del gimnasio]';
+const String kPrivacidadResponsable = 'Olympus Gym';
 
 /// NIF/CIF del responsable.
 const String kPrivacidadNif = '[NIF/CIF]';
 
 /// Dirección postal del responsable.
-const String kPrivacidadDireccion = '[Dirección postal]';
+const String kPrivacidadDireccion = '41200';
 
 /// Correo de contacto para cuestiones de privacidad y ejercicio de derechos.
 const String kPrivacidadEmail = '[correo de contacto]';
 
 /// Base jurídica del tratamiento.
-const String kPrivacidadBaseLegal = '[Base jurídica del tratamiento]';
+const String kPrivacidadBaseLegal =
+    'Ejecución del contrato de servicios del gimnasio (art. 6.1.b del RGPD) para la gestión de tu cuenta, bonos, reservas y visibilidad en listas de clases; consentimiento explícito (art. 6.1.a) para el envío de notificaciones push en el móvil; e interés legítimo (art. 6.1.f) para garantizar la seguridad del servicio.';
 
 /// Plazo de conservación de los datos tras darse de baja.
-const String kPrivacidadConservacion = '[plazo de conservación tras la baja]';
+const String kPrivacidadConservacion = 'Borrado inmediato';
 
 /// Fecha de la última actualización de este texto.
 const String kPrivacidadActualizacion = 'noviembre de 2026';
@@ -126,6 +127,16 @@ class PrivacidadScreen extends StatelessWidget {
                     'envío de correos electrónicos y envío de notificaciones '
                     'al móvil (Google Firebase). Solo tratan los datos para '
                     'prestar ese servicio.',
+                'No vendemos tus datos ni los usamos para publicidad.',
+              ],
+            ),
+            const _Seccion(
+              titulo: 'Seguridad',
+              parrafos: [
+                'Los datos viajan cifrados entre la app y nuestros servidores '
+                    '(HTTPS). El acceso está restringido: cada socio solo '
+                    'puede leer y modificar sus propios datos, salvo lo '
+                    'indicado sobre la lista de apuntados.',
               ],
             ),
             const _Seccion(
@@ -144,6 +155,12 @@ class PrivacidadScreen extends StatelessWidget {
                     '$kPrivacidadEmail.',
                 'Tu nombre, apellidos y foto puedes cambiarlos directamente '
                     'desde "Mi perfil".',
+                'Puedes eliminar tu cuenta y todos tus datos en cualquier '
+                    'momento desde "Mi perfil" → "Eliminar mi cuenta", o '
+                    'pedirlo escribiendo a $kPrivacidadEmail. Los datos se '
+                    'borran al momento y no se pueden recuperar; solo pueden '
+                    'quedar durante un tiempo limitado en las copias de '
+                    'seguridad de nuestro proveedor, hasta que se sobrescriben.',
                 'Si consideras que no hemos tratado bien tus datos, puedes '
                     'reclamar ante la Agencia Española de Protección de Datos '
                     '(www.aepd.es).',

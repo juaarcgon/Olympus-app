@@ -58,7 +58,7 @@ Lenguaje de implementación: **Dart (Flutter)** para el cliente y **SQL (Postgre
 
   - [x] 2.2 Crear el trigger de alta de perfil y el helper de rol
     - Implementar `supabase/migrations/0002_trigger_helper.sql`
-    - Función + trigger `on_auth_user_created`: inserta fila en `public.profiles` con `saldo_clases = 10` y `estado = 'activo'` tomando `nombre`/`apellidos` de la metadata de signup
+    - Función + trigger `on_auth_user_created`: inserta fila en `public.profiles` con `saldo_clases = 0` (antes 10; cambiado en la migración 0018) y `estado = 'activo'` tomando `nombre`/`apellidos` de la metadata de signup
     - Función auxiliar `es_superadmin()` (`SECURITY DEFINER`) que devuelve si el `rol` del llamante (`auth.uid()`) es `'superadmin'`
     - _Requirements: 1.1, 1.2, 5.3_
     - _Design: Flujo de autenticación y sesión; Security and RLS Strategy_

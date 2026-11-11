@@ -50,6 +50,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   /// para no sobrescribir lo que el Usuario esté escribiendo en recargas.
   bool _camposInicializados = false;
 
+  /// Indica si hay un borrado de cuenta en curso.
+  bool _eliminandoCuenta = false;
+
+  /// Pide confirmación y elimina de forma permanente la cuenta del Usuario.
+  ///
+  /// Si sale bien, la sesión se cierra y la guarda de enrutado vuelve al
+  /// inicio de sesión, así que el aviso se muestra en el overlay raíz, que
+  /// sobrevive al cambio de pantalla.
+  Future<void> _eliminarCuenta(Profile profile) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (_) =>
+          _ConfirmarEliminarCuentaDialog(saldoClases: profile.saldoClases),
+    );
+    if (confirmado != true || !mounted) return;
+
+    final overlay = Overlay.of(context, rootOverlay: true);
+    setState(() => _eliminandoCuenta = true);
+    try {
+      await ref.read(profileNotifierProvider.notifier).eliminarMiCuenta();
+      if (mounted) ref.invalidate(authNotifierProvider);
+      AppNotifications.exitoEnOverlay(
+        overlay,
+        'Tu cuenta y tus datos se han eliminado.',
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _eliminandoCuenta = false);
+      AppNotifications.error(context, _mensajeDeError(error));
+    }
+  }
+
   @override
   void dispose() {
     _nombreController.dispose();
@@ -155,9 +187,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             nombreController: _nombreController,
             apellidosController: _apellidosController,
             fotoSeleccionada: _fotoSeleccionada,
-            guardando: guardando,
+            guardando: guardando || _eliminandoCuenta,
             onSeleccionarFoto: _seleccionarFoto,
             onGuardar: _guardar,
+            eliminandoCuenta: _eliminandoCuenta,
+            onEliminarCuenta: () => _eliminarCuenta(profile),
           );
         },
       ),
@@ -207,6 +241,8 @@ class _FormularioPerfil extends StatelessWidget {
     required this.guardando,
     required this.onSeleccionarFoto,
     required this.onGuardar,
+    required this.eliminandoCuenta,
+    required this.onEliminarCuenta,
   });
 
   final GlobalKey<FormState> formKey;
@@ -217,6 +253,12 @@ class _FormularioPerfil extends StatelessWidget {
   final bool guardando;
   final VoidCallback onSeleccionarFoto;
   final Future<void> Function() onGuardar;
+
+  /// Indica si hay un borrado de cuenta en curso.
+  final bool eliminandoCuenta;
+
+  /// Inicia el borrado de la cuenta (con confirmación).
+  final VoidCallback onEliminarCuenta;
 
   @override
   Widget build(BuildContext context) {
@@ -316,9 +358,123 @@ class _FormularioPerfil extends StatelessWidget {
               icon: const Icon(Icons.privacy_tip_outlined),
               label: const Text('Privacidad y protección de datos'),
             ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 8),
+            // Eliminación de la cuenta (exigida por Google Play). Al final de
+            // la pantalla y con confirmación explícita para evitar accidentes.
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: guardando ? null : onEliminarCuenta,
+              icon: eliminandoCuenta
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.delete_forever_outlined),
+              label: Text(
+                eliminandoCuenta ? 'Eliminando cuenta…' : 'Eliminar mi cuenta',
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Diálogo de confirmación del borrado de cuenta.
+///
+/// Explica qué se borra y exige escribir "ELIMINAR" para activar el botón,
+/// porque la acción es irreversible. Devuelve `true` si el Usuario confirma.
+class _ConfirmarEliminarCuentaDialog extends StatefulWidget {
+  const _ConfirmarEliminarCuentaDialog({required this.saldoClases});
+
+  /// Clases que le quedan en el bono, para que sepa lo que pierde.
+  final int saldoClases;
+
+  @override
+  State<_ConfirmarEliminarCuentaDialog> createState() =>
+      _ConfirmarEliminarCuentaDialogState();
+}
+
+class _ConfirmarEliminarCuentaDialogState
+    extends State<_ConfirmarEliminarCuentaDialog> {
+  static const String _palabraClave = 'ELIMINAR';
+
+  final _controller = TextEditingController();
+
+  bool get _confirmado =>
+      _controller.text.trim().toUpperCase() == _palabraClave;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bono = switch (widget.saldoClases) {
+      0 => '• Tu bono.',
+      1 => '• Tu bono, con la clase que te queda.',
+      final n => '• Tu bono, con las $n clases que te quedan.',
+    };
+
+    return AlertDialog(
+      icon: Icon(Icons.warning_amber_rounded, color: scheme.error),
+      title: const Text('Eliminar mi cuenta'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Se borrarán para siempre:'),
+            const SizedBox(height: 8),
+            Text(
+              '• Tu cuenta y tus datos personales.\n'
+              '• Tu foto de perfil.\n'
+              '$bono\n'
+              '• Tus reservas y tus puestos en listas de espera. Las plazas que '
+              'tengas en clases futuras pasarán a la siguiente persona de la '
+              'lista.',
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Esta acción no se puede deshacer.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(
+                labelText: 'Escribe $_palabraClave para confirmar',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: scheme.error,
+            foregroundColor: scheme.onError,
+          ),
+          onPressed: _confirmado ? () => Navigator.of(context).pop(true) : null,
+          child: const Text('Eliminar cuenta'),
+        ),
+      ],
     );
   }
 }

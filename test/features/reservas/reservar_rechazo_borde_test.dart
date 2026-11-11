@@ -181,7 +181,8 @@ void main() {
           );
           expect(
             res.failure!.mensaje,
-            'No quedan clases disponibles en tu bono',
+            'No quedan clases disponibles en tu bono. Cuando pagues, el '
+            'gimnasio te lo recargará.',
           );
 
           // No se crea NI reserva confirmada NI entrada en espera: el estado

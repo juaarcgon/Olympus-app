@@ -80,6 +80,31 @@ class ProfileRepositoryImpl implements ProfileRepository {
     }
   }
 
+  @override
+  Future<void> eliminarMiCuenta() async {
+    try {
+      await _dataSource.eliminarMiCuenta();
+    } on StateError {
+      throw const AutorizacionInsuficienteFailure(
+        'No tienes autorización para realizar esta operación',
+      );
+    } on StorageException {
+      // Sin borrar la foto no se sigue: la cuenta queda intacta.
+      throw const OperacionFallidaFailure(
+        'No se ha podido borrar tu foto de perfil. Inténtalo de nuevo.',
+      );
+    } on PostgrestException catch (e) {
+      // Reglas de negocio de la RPC (p. ej. un superadministrador no puede
+      // eliminarse): se muestra el mensaje del servidor tal cual.
+      if (e.code == 'P0001' && e.message.trim().isNotEmpty) {
+        throw OperacionFallidaFailure(e.message.trim());
+      }
+      throw const OperacionFallidaFailure(
+        'No se ha podido eliminar la cuenta. Inténtalo de nuevo.',
+      );
+    }
+  }
+
   /// Deriva la extensión de archivo de un [XFile] a partir de su nombre.
   ///
   /// Devuelve `.jpg` por defecto cuando el nombre no incluye extensión, para

@@ -12,6 +12,13 @@ library;
 /// superar este valor (Req 4.4, 8.10).
 const int kBonoMax = 10;
 
+/// Saldo de clases con el que empieza una cuenta recién registrada.
+///
+/// Cero (0): el bono empieza vacío y el gimnasio lo carga cuando el socio
+/// paga (`restablecer_bono` / `ajustar_bono`). Espejo del trigger de alta de
+/// la migración 0018 (Req 1.2).
+const int kBonoInicial = 0;
+
 /// Saldo mínimo de clases del bono de un Usuario.
 ///
 /// El `saldo_clases` nunca debe ser inferior a cero (0) (Req 4.4, 8.10).

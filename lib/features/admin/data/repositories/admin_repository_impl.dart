@@ -50,8 +50,17 @@ class AdminRepositoryImpl implements AdminRepository {
       _ejecutarRpc(() => _dataSource.reactivarUsuario(userId));
 
   @override
-  Future<void> deleteUser(String userId) =>
-      _ejecutarRpc(() => _dataSource.eliminarUsuario(userId));
+  Future<void> deleteUser(String userId) async {
+    try {
+      await _ejecutarRpc(() => _dataSource.eliminarUsuario(userId));
+    } on StorageException {
+      // La foto no se pudo borrar: no se ha llamado a la RPC y la cuenta sigue.
+      throw const OperacionFallidaFailure(
+        'No se ha podido borrar la foto de perfil del usuario. Inténtalo de '
+        'nuevo.',
+      );
+    }
+  }
 
   @override
   Future<void> restablecerBono(String userId) =>

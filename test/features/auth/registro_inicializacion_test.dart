@@ -4,18 +4,19 @@
 //
 // Property 1: Inicialización del bono y estado al registrarse.
 // "Para cualquier registro de usuario válido, la cuenta creada debe tener
-//  estado == 'activo' y saldo_clases == 10."
+//  estado == 'activo' y saldo_clases == 0" (el bono empieza vacío hasta que el
+//  socio paga).
 //
 // Validates: Requirements 1.1, 1.2
 //
 // La propiedad se verifica contra el modelo de dominio puro del alta
 // (`crearCuentaDesdeRegistro`), espejo del trigger `on_auth_user_created` del
-// backend (migración 0002), que inserta la fila en `public.profiles` con
-// `estado = 'activo'` y `saldo_clases = 10`. Se usa `glados` con un mínimo de
+// backend (migración 0018), que inserta la fila en `public.profiles` con
+// `estado = 'activo'` y `saldo_clases = 0`. Se usa `glados` con un mínimo de
 // 100 iteraciones. Para cada registro válido arbitrario (nombre, apellidos e
 // email generados) se comprueba que la cuenta creada cumple siempre:
 //   - estado == activo (Req 1.1),
-//   - saldoClases == 10 (Req 1.2),
+//   - saldoClases == 0 (Req 1.2),
 // con total independencia de los datos concretos del registro. Esto mirror-ea
 // la inicialización que Supabase materializa en el backend sin red ni backend,
 // igual que el resto de pruebas de dominio de la app.
@@ -60,7 +61,7 @@ void main() {
     () {
       Glados(_anyRegistro).test(
         'para cualquier registro válido, la cuenta creada tiene estado activo y '
-        'saldo_clases == 10 (Req 1.1, 1.2)',
+        'saldo_clases == 0 (Req 1.1, 1.2)',
         (registro) {
           final cuenta = crearCuentaDesdeRegistro(registro);
 
@@ -72,13 +73,13 @@ void main() {
           );
           expect(cuenta.estaActivo, isTrue);
 
-          // Req 1.2: el saldo de clases se inicializa en 10 (bono completo).
+          // Req 1.2: el bono empieza vacío hasta que el socio paga.
           expect(
             cuenta.saldoClases,
-            kBonoMax,
-            reason: 'el saldo de clases inicial debe ser $kBonoMax',
+            kBonoInicial,
+            reason: 'el saldo de clases inicial debe ser $kBonoInicial',
           );
-          expect(cuenta.saldoClases, 10);
+          expect(cuenta.saldoClases, 0);
         },
       );
     },

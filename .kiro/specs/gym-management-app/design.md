@@ -116,7 +116,7 @@ test/                              # Pruebas unitarias y de propiedades
 ### Flujo de autenticación y sesión
 
 - El registro, inicio de sesión, cierre de sesión y recuperación de contraseña se delegan en **Supabase Auth**. Supabase crea una fila en `auth.users` y gestiona el hashing de la contraseña y los JWT de sesión.
-- Un **trigger** `on_auth_user_created` crea automáticamente la fila correspondiente en `public.profiles` con `saldo_clases = 10` y `estado = 'activo'`.
+- Un **trigger** `on_auth_user_created` crea automáticamente la fila correspondiente en `public.profiles` con `saldo_clases = 0` (bono vacío hasta que el socio paga; migración 0018) y `estado = 'activo'`.
 - El cliente escucha `supabase.auth.onAuthStateChange` para dirigir el enrutado (sesión activa vs. pantallas públicas), cumpliendo el Requisito 7.3 (sin sesión no hay acceso a datos).
 
 ## Components and Interfaces
@@ -250,7 +250,7 @@ Modelo de usuario **ampliable**: columnas explícitas para los campos conocidos 
 | `apellidos` | `text` | NOT NULL | Req 1.1 |
 | `foto_url` | `text` | NULL | Ruta en Storage (Req 1.7) |
 | `email` | `text` | NOT NULL, UNIQUE | Espejo de `auth.users.email` para listados admin |
-| `saldo_clases` | `int` | NOT NULL, DEFAULT 10, `CHECK (saldo_clases BETWEEN 0 AND 10)` | Invariante del bono (Req 1.2, 4.4, 8.10) |
+| `saldo_clases` | `int` | NOT NULL, DEFAULT 0, `CHECK (saldo_clases BETWEEN 0 AND 10)` | Invariante del bono (Req 1.2, 4.4, 8.10). DEFAULT 0 desde la migración 0018 |
 | `estado` | `text` | NOT NULL, DEFAULT 'activo', `CHECK (estado IN ('activo','suspendido'))` | Req 1.1, 6.2, 6.3 |
 | `rol` | `text` | NOT NULL, DEFAULT 'usuario', `CHECK (rol IN ('usuario','superadmin'))` | Req 5 |
 | `metadata` | `jsonb` | NOT NULL, DEFAULT '{}'::jsonb | Campos ampliables (Req 3.5) |
@@ -324,7 +324,7 @@ Las siguientes propiedades se derivan del análisis de prework. Se han consolida
 
 ### Property 1: Inicialización del bono y estado al registrarse
 
-*Para cualquier* registro de usuario válido, la cuenta creada debe tener `estado == 'activo'` y `saldo_clases == 10`.
+*Para cualquier* registro de usuario válido, la cuenta creada debe tener `estado == 'activo'` y `saldo_clases == 0` (bono vacío hasta el pago).
 
 **Validates: Requirements 1.1, 1.2**
 
