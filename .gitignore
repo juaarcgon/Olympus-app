@@ -67,5 +67,8 @@ android/key.properties
 *.jks
 *.keystore
 
+# Configuración y especificaciones locales de Kiro (no se publican).
+.kiro/
+
 # Supabase CLI temp files
 supabase/.temp/
