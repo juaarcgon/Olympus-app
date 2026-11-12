@@ -1,0 +1,83 @@
+# Compila la app de iOS en un Mac de GitHub y deja un .ipa SIN FIRMAR para
+# descargar. Sirve para instalarla en un iPhone con Sideloadly y un Apple ID
+# gratuito (caduca a los 7 días y sin notificaciones push).
+#
+# Se lanza a mano: pestaña Actions → "iOS (IPA sin firmar)" → Run workflow.
+#
+# Secretos necesarios (Settings → Secrets and variables → Actions):
+#   DART_DEFINES_JSON_B64          dart_defines.json en base64
+#   GOOGLE_SERVICE_INFO_PLIST_B64  ios/Runner/GoogleService-Info.plist en base64
+# Ninguno de los dos archivos está en el repositorio (.gitignore).
+
+name: iOS (IPA sin firmar)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-sin-firmar
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v7.0.1
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.44.2
+          cache: true
+
+      - name: Restaurar la configuración desde los secretos
+        env:
+          DART_DEFINES_JSON_B64: ${{ secrets.DART_DEFINES_JSON_B64 }}
+          GOOGLE_SERVICE_INFO_PLIST_B64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DART_DEFINES_JSON_B64}" ] || [ -z "${GOOGLE_SERVICE_INFO_PLIST_B64}" ]; then
+            echo "::error::Faltan los secretos DART_DEFINES_JSON_B64 o GOOGLE_SERVICE_INFO_PLIST_B64."
+            exit 1
+          fi
+          printf '%s' "${DART_DEFINES_JSON_B64}" | base64 --decode > dart_defines.json
+          printf '%s' "${GOOGLE_SERVICE_INFO_PLIST_B64}" | base64 --decode > ios/Runner/GoogleService-Info.plist
+          # Comprobación sin mostrar contenido: deben ser JSON y plist válidos.
+          python3 -c "import json; d = json.load(open('dart_defines.json')); assert d.get('SUPABASE_URL') and d.get('SUPABASE_ANON_KEY')"
+          plutil -lint ios/Runner/GoogleService-Info.plist
+
+      - name: Dependencias
+        run: flutter pub get
+
+      - name: Compilar para iOS (sin firmar)
+        run: flutter build ios --release --no-codesign --dart-define-from-file=dart_defines.json
+
+      - name: Empaquetar el .ipa
+        run: |
+          set -euo pipefail
+          rm -rf Payload
+          mkdir Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry Olympus-sin-firmar.ipa Payload
+          ls -lh Olympus-sin-firmar.ipa
+
+      - name: Borrar la configuración restaurada
+        if: always()
+        run: rm -f dart_defines.json ios/Runner/GoogleService-Info.plist
+
+      # El repositorio es público: cualquier persona con cuenta de GitHub puede
+      # descargar el artefacto. Por eso se guarda solo 3 días.
+      - name: Subir el .ipa
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: Olympus-ipa-sin-firmar
+          path: Olympus-sin-firmar.ipa
+          retention-days: 3
+          if-no-files-found: error
