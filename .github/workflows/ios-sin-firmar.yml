@@ -57,7 +57,23 @@ jobs:
         run: flutter pub get
 
       - name: Compilar para iOS (sin firmar)
-        run: flutter build ios --release --no-codesign --dart-define-from-file=dart_defines.json
+        run: |
+          set -o pipefail
+          flutter build ios --release --no-codesign --verbose \
+            --dart-define-from-file=dart_defines.json 2>&1 | tee build_ios.log
+
+      # Si falla, publica las líneas de error como anotación: las anotaciones
+      # se pueden leer sin iniciar sesión, el registro completo no. Se descartan
+      # las líneas con DART_DEFINES (llevan la configuración codificada).
+      - name: Resumen del error
+        if: failure()
+        run: |
+          [ -f build_ios.log ] || exit 0
+          grep -nE "error:|Error:|error \(|ERROR|Failed|failed with|Exception|❌|Swift Compiler Error|Could not|Unable to|requires|minimum" build_ios.log \
+            | grep -v "DART_DEFINES" | grep -vi "warning:" | tail -n 45 > errores.txt || true
+          if [ ! -s errores.txt ]; then tail -n 45 build_ios.log | grep -v "DART_DEFINES" > errores.txt; fi
+          resumen=$(cut -c1-300 errores.txt | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN{ORS="%0A"} {print}')
+          echo "::error title=Compilación iOS::${resumen}"
 
       - name: Empaquetar el .ipa
         run: |
@@ -70,7 +86,7 @@ jobs:
 
       - name: Borrar la configuración restaurada
         if: always()
-        run: rm -f dart_defines.json ios/Runner/GoogleService-Info.plist
+        run: rm -f dart_defines.json ios/Runner/GoogleService-Info.plist build_ios.log errores.txt
 
       # El repositorio es público: cualquier persona con cuenta de GitHub puede
       # descargar el artefacto. Por eso se guarda solo 3 días.
