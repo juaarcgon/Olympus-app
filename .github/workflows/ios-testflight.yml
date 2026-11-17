@@ -1,0 +1,235 @@
+# Compila la app de iOS en un Mac de GitHub, la firma con el certificado de
+# distribución y la sube a App Store Connect (TestFlight).
+#
+# Se lanza a mano: pestaña Actions → "iOS (TestFlight)" → Run workflow.
+#
+# Secretos necesarios (Settings → Secrets and variables → Actions):
+#   DART_DEFINES_JSON_B64           dart_defines.json en base64
+#   GOOGLE_SERVICE_INFO_PLIST_B64   ios/Runner/GoogleService-Info.plist en base64
+#   IOS_DIST_CERT_P12_B64           certificado Apple Distribution (.p12) en base64
+#   IOS_DIST_CERT_PASSWORD          contraseña del .p12
+#   IOS_PROVISIONING_PROFILE_B64    perfil "App Store Connect" (.mobileprovision) en base64
+#   APP_STORE_CONNECT_API_KEY_B64   clave de API de App Store Connect (.p8) en base64
+#   APP_STORE_CONNECT_API_KEY_ID    Key ID de esa clave
+#   APP_STORE_CONNECT_ISSUER_ID     Issuer ID de App Store Connect
+#
+# El número de build de iOS es el número de ejecución de este workflow, así
+# cada subida es única. La versión visible (1.0.0) sale de pubspec.yaml.
+
+name: iOS (TestFlight)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-testflight
+  cancel-in-progress: false
+
+env:
+  BUNDLE_ID: com.olympusgym.app
+  TEAM_ID: LHX54KM889
+
+jobs:
+  testflight:
+    runs-on: macos-latest
+    timeout-minutes: 75
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v7.0.1
+
+      - name: Instalar Flutter
+        uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.44.2
+          cache: true
+
+      - name: Comprobar que están todos los secretos
+        env:
+          S1: ${{ secrets.DART_DEFINES_JSON_B64 }}
+          S2: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_B64 }}
+          S3: ${{ secrets.IOS_DIST_CERT_P12_B64 }}
+          S4: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          S5: ${{ secrets.IOS_PROVISIONING_PROFILE_B64 }}
+          S6: ${{ secrets.APP_STORE_CONNECT_API_KEY_B64 }}
+          S7: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          S8: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          faltan=""
+          [ -n "$S1" ] || faltan="$faltan DART_DEFINES_JSON_B64"
+          [ -n "$S2" ] || faltan="$faltan GOOGLE_SERVICE_INFO_PLIST_B64"
+          [ -n "$S3" ] || faltan="$faltan IOS_DIST_CERT_P12_B64"
+          [ -n "$S4" ] || faltan="$faltan IOS_DIST_CERT_PASSWORD"
+          [ -n "$S5" ] || faltan="$faltan IOS_PROVISIONING_PROFILE_B64"
+          [ -n "$S6" ] || faltan="$faltan APP_STORE_CONNECT_API_KEY_B64"
+          [ -n "$S7" ] || faltan="$faltan APP_STORE_CONNECT_API_KEY_ID"
+          [ -n "$S8" ] || faltan="$faltan APP_STORE_CONNECT_ISSUER_ID"
+          if [ -n "$faltan" ]; then
+            echo "::error::Faltan secretos:$faltan"
+            exit 1
+          fi
+
+      - name: Restaurar la configuración de la app
+        env:
+          DART_DEFINES_JSON_B64: ${{ secrets.DART_DEFINES_JSON_B64 }}
+          GOOGLE_SERVICE_INFO_PLIST_B64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_B64 }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${DART_DEFINES_JSON_B64}" | base64 --decode > dart_defines.json
+          printf '%s' "${GOOGLE_SERVICE_INFO_PLIST_B64}" | base64 --decode > ios/Runner/GoogleService-Info.plist
+          python3 -c "import json; d = json.load(open('dart_defines.json')); assert d.get('SUPABASE_URL') and d.get('SUPABASE_ANON_KEY')"
+          plutil -lint ios/Runner/GoogleService-Info.plist
+          plist_bundle=$(/usr/libexec/PlistBuddy -c "Print :BUNDLE_ID" ios/Runner/GoogleService-Info.plist)
+          if [ "$plist_bundle" != "$BUNDLE_ID" ]; then
+            echo "::error::GoogleService-Info.plist es de '$plist_bundle', no de '$BUNDLE_ID'."
+            exit 1
+          fi
+
+      - name: Instalar el certificado en un llavero temporal
+        env:
+          IOS_DIST_CERT_P12_B64: ${{ secrets.IOS_DIST_CERT_P12_B64 }}
+          IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/firma.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+          printf '%s' "${IOS_DIST_CERT_P12_B64}" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -P "$IOS_DIST_CERT_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          echo "Identidades de firma disponibles:"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+      - name: Instalar el perfil de aprovisionamiento
+        env:
+          IOS_PROVISIONING_PROFILE_B64: ${{ secrets.IOS_PROVISIONING_PROFILE_B64 }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${IOS_PROVISIONING_PROFILE_B64}" | base64 --decode > "$RUNNER_TEMP/perfil.mobileprovision"
+          security cms -D -i "$RUNNER_TEMP/perfil.mobileprovision" > "$RUNNER_TEMP/perfil.plist"
+          UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" "$RUNNER_TEMP/perfil.plist")
+          NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$RUNNER_TEMP/perfil.plist")
+          APPID=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" "$RUNNER_TEMP/perfil.plist")
+          if [ "$APPID" != "$TEAM_ID.$BUNDLE_ID" ]; then
+            echo "::error::El perfil es para '$APPID', no para '$TEAM_ID.$BUNDLE_ID'."
+            exit 1
+          fi
+          if ! /usr/libexec/PlistBuddy -c "Print :Entitlements:aps-environment" "$RUNNER_TEMP/perfil.plist" > /dev/null 2>&1; then
+            echo "::error::El perfil no incluye Push Notifications. Actívalo en el App ID y vuelve a generar el perfil."
+            exit 1
+          fi
+          for dir in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+            mkdir -p "$dir"
+            cp "$RUNNER_TEMP/perfil.mobileprovision" "$dir/$UUID.mobileprovision"
+          done
+          echo "Perfil instalado: $NAME ($UUID)"
+          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
+
+      # Firma manual solo en la configuración Release del target Runner. Los
+      # paquetes Swift de los plugins no se firman aparte, por eso no se pasan
+      # estos ajustes por línea de comandos (afectarían a todos los targets).
+      - name: Configurar la firma manual en el proyecto Xcode
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re
+          ruta = "ios/Runner.xcodeproj/project.pbxproj"
+          texto = open(ruta, encoding="utf-8").read()
+          inicio = texto.index("97C147071CF9000F007C117D /* Release */ = {")
+          fin = texto.index("name = Release;", inicio)
+          bloque = texto[inicio:fin]
+          ancla = "CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;"
+          assert ancla in bloque, "No se encuentra CODE_SIGN_ENTITLEMENTS en Runner/Release"
+          extra = (
+              ancla
+              + '\n\t\t\t\tCODE_SIGN_IDENTITY = "Apple Distribution";'
+              + '\n\t\t\t\t"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";'
+              + "\n\t\t\t\tCODE_SIGN_STYLE = Manual;"
+              + '\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = "' + os.environ["PROFILE_NAME"] + '";'
+          )
+          bloque = bloque.replace(ancla, extra, 1)
+          open(ruta, "w", encoding="utf-8").write(texto[:inicio] + bloque + texto[fin:])
+          PY
+
+      - name: Opciones de exportación
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${BUNDLE_ID}</key><string>${PROFILE_NAME}</string>
+            </dict>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          EOF
+          plutil -lint "$RUNNER_TEMP/ExportOptions.plist"
+
+      - name: Dependencias
+        run: flutter pub get
+
+      - name: Compilar y firmar el .ipa
+        run: |
+          set -o pipefail
+          flutter build ipa --release \
+            --build-number=${{ github.run_number }} \
+            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist" \
+            --dart-define-from-file=dart_defines.json 2>&1 | tee build_ios.log
+          ls -lh build/ios/ipa/*.ipa
+
+      # Si falla, publica las líneas de error como anotación: las anotaciones
+      # se pueden leer sin iniciar sesión, el registro completo no. Se descartan
+      # las líneas con DART_DEFINES (llevan la configuración codificada).
+      - name: Resumen del error
+        if: failure()
+        run: |
+          [ -f build_ios.log ] || exit 0
+          grep -nE "error:|Error:|error \(|ERROR|Failed|failed with|Exception|❌|Swift Compiler Error|Could not|Unable to|requires|minimum|Provisioning|signing|Signing" build_ios.log \
+            | grep -v "DART_DEFINES" | grep -vi "warning:" | tail -n 45 > errores.txt || true
+          if [ ! -s errores.txt ]; then tail -n 45 build_ios.log | grep -v "DART_DEFINES" > errores.txt; fi
+          resumen=$(cut -c1-300 errores.txt | sed -e 's/%/%25/g' -e 's/\r//g' | awk 'BEGIN{ORS="%0A"} {print}')
+          echo "::error title=Compilación iOS::${resumen}"
+
+      - name: Subir a App Store Connect (TestFlight)
+        env:
+          APP_STORE_CONNECT_API_KEY_B64: ${{ secrets.APP_STORE_CONNECT_API_KEY_B64 }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          printf '%s' "${APP_STORE_CONNECT_API_KEY_B64}" | base64 --decode \
+            > "$HOME/.appstoreconnect/private_keys/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          IPA=$(ls build/ios/ipa/*.ipa | head -n 1)
+          xcrun altool --upload-app --type ios --file "$IPA" \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" 2>&1 | tee subida.log
+          if grep -qiE "ERROR ITMS|Failed to upload|UPLOAD FAILED" subida.log; then
+            grep -iE "ERROR|ITMS" subida.log | head -n 20 | while IFS= read -r linea; do echo "::error title=Subida::${linea:0:300}"; done
+            exit 1
+          fi
+          echo "Build ${{ github.run_number }} subida. Aparecerá en TestFlight cuando Apple termine de procesarla."
+
+      - name: Limpiar secretos y llavero
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/firma.keychain-db" 2>/dev/null || true
+          rm -rf "$HOME/.appstoreconnect/private_keys" "$RUNNER_TEMP/perfil.mobileprovision" "$RUNNER_TEMP/perfil.plist"
+          rm -f dart_defines.json ios/Runner/GoogleService-Info.plist build_ios.log errores.txt subida.log
