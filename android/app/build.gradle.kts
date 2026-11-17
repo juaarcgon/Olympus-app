@@ -40,7 +40,7 @@ android {
     defaultConfig {
         // Identificador único de la aplicación. Debe ser propio (no com.example)
         // para poder publicar y para no colisionar con otras apps.
-        applicationId = "com.olympus.gym"
+        applicationId = "com.olympusgym.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

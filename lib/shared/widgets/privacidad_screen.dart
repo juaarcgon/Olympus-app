@@ -14,20 +14,25 @@
 // de protección de datos.
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // --- Datos del responsable del tratamiento: COMPLETAR antes de publicar -----
 
 /// Nombre o razón social del gimnasio (responsable del tratamiento).
-const String kPrivacidadResponsable = 'Olympus Gym';
+const String kPrivacidadResponsable = 'Olympus Club';
 
 /// NIF/CIF del responsable.
-const String kPrivacidadNif = '[NIF/CIF]';
+const String kPrivacidadNif = '47548441N';
 
 /// Dirección postal del responsable.
-const String kPrivacidadDireccion = '41200';
+const String kPrivacidadDireccion = 'C/Mesones Nº26 CP: 41200';
 
 /// Correo de contacto para cuestiones de privacidad y ejercicio de derechos.
-const String kPrivacidadEmail = '[correo de contacto]';
+const String kPrivacidadEmail = 'vidalpa_14@hotmail.com';
+
+/// Formulario web para solicitar la eliminación de la cuenta y los datos.
+const String kPrivacidadFormularioBorrado =
+    'https://docs.google.com/forms/d/e/1FAIpQLSd8effV0EAO4V-JMnwtJyIyL5TaIQhC9YxlgejkvBKyGCbkhA/viewform';
 
 /// Base jurídica del tratamiento.
 const String kPrivacidadBaseLegal =
@@ -161,6 +166,14 @@ class PrivacidadScreen extends StatelessWidget {
                     'borran al momento y no se pueden recuperar; solo pueden '
                     'quedar durante un tiempo limitado en las copias de '
                     'seguridad de nuestro proveedor, hasta que se sobrescriben.',
+                'También puedes solicitar la eliminación de tu cuenta y tus '
+                    'datos desde la web, sin abrir la app, con este formulario:',
+              ],
+              extra: _EnlaceFormularioBorrado(),
+            ),
+            const _Seccion(
+              titulo: 'Reclamaciones',
+              parrafos: [
                 'Si consideras que no hemos tratado bien tus datos, puedes '
                     'reclamar ante la Agencia Española de Protección de Datos '
                     '(www.aepd.es).',
@@ -219,10 +232,13 @@ class _Destacado extends StatelessWidget {
 
 /// Sección con título y uno o varios párrafos.
 class _Seccion extends StatelessWidget {
-  const _Seccion({required this.titulo, required this.parrafos});
+  const _Seccion({required this.titulo, required this.parrafos, this.extra});
 
   final String titulo;
   final List<String> parrafos;
+
+  /// Widget opcional que se muestra tras los párrafos (p. ej. un enlace).
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +252,38 @@ class _Seccion extends StatelessWidget {
             const SizedBox(height: 8),
             Text(parrafo),
           ],
+          if (extra != null) ...[const SizedBox(height: 8), extra!],
         ],
+      ),
+    );
+  }
+}
+
+/// Enlace que abre el formulario web de eliminación de cuenta en el navegador.
+class _EnlaceFormularioBorrado extends StatelessWidget {
+  const _EnlaceFormularioBorrado();
+
+  Future<void> _abrir(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final abierto = await launchUrl(
+      Uri.parse(kPrivacidadFormularioBorrado),
+      mode: LaunchMode.externalApplication,
+    ).catchError((_) => false);
+    if (!abierto) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('No se ha podido abrir el formulario.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () => _abrir(context),
+        icon: const Icon(Icons.open_in_new),
+        label: const Text('Formulario de eliminación de cuenta'),
       ),
     );
   }
